@@ -9,9 +9,9 @@
 //!
 //! A run is aligned only when the author aligned it (two or more spaces before
 //! a column on the same line). Columns are recomputed from the widest cell, so
-//! renaming a glyph never leaves a ragged table. Output that needs no padding
-//! comes out single-spaced and stays that way, which keeps formatting
-//! idempotent.
+//! renaming a glyph never leaves a ragged table. A run that needs no padding
+//! is laid out as ordinary statements, since nothing would mark it as a table
+//! on the next pass; that keeps formatting idempotent.
 
 use std::collections::HashMap;
 
@@ -166,6 +166,17 @@ fn render_run(run: &[Placed], shape: Shape, opts: &Settings) -> Option<Vec<Strin
         for (c, cell) in row.iter().enumerate() {
             widths[c] = widths[c].max(cell.chars().count());
         }
+    }
+    // a run that needs no padding anywhere isn't a table, and the next pass
+    // couldn't tell it was one: lay it out as ordinary statements (an overlong
+    // class row would otherwise stay on one line now and wrap next time)
+    let padded = rows.iter().any(|row| {
+        row.iter()
+            .enumerate()
+            .any(|(c, cell)| c + 1 < row.len() && widths[c] > cell.chars().count())
+    });
+    if !padded {
+        return None;
     }
     let indent = opts.indent.repeat(run[0].depth);
     let lines: Vec<String> = rows

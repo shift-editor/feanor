@@ -224,6 +224,21 @@ fn does_not_put_a_block_on_one_line_when_a_class_keeps_its_rows() {
 }
 
 #[test]
+fn a_table_with_nothing_to_align_is_formatted_as_usual() {
+    // Roboto in fea-rs's test data: a stray double space made two long, identical
+    // classes look like a table; kept on one line, the next pass wrapped them
+    let long = "S Sacute Scircumflex Scedilla Scaron uni0218 uni2C7E uni1E60 uni1E62 uni1E64 uni1E66 uni1E68";
+    let src = format!(
+        "@_S_L = [{}];\n@_S_R = [{}];\n",
+        long.replacen(' ', "  ", 1),
+        long.replacen(' ', "  ", 1)
+    );
+    let once = format(&src, &narrow(60)).text;
+    assert_eq!(format(&once, &narrow(60)).text, once, "not idempotent");
+    assert!(once.lines().all(|l| l.chars().count() <= 60), "{once}");
+}
+
+#[test]
 fn leaves_unparseable_items_untouched() {
     let src =
         "feature liga {\n  sub a by b;\n} liga;\n@broken = [a b\nfeature kern {pos a b 1;} kern;\n";
