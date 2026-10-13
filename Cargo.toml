@@ -5,8 +5,8 @@ members = ["crates/feanor", "crates/feanor-cli"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-# let-chains (`if let … && let …`) need Rust 1.88
-rust-version = "1.88"
+# fea-rs depends on smol_str 0.3, which needs Rust 1.89
+rust-version = "1.89"
 license = "MIT OR Apache-2.0"
 authors = ["Kostya Farber"]
 repository = "https://github.com/shift-editor/feanor"

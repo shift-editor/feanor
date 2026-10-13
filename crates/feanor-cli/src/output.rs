@@ -167,7 +167,7 @@ pub(crate) fn print_statistics<'a>(diags: impl Iterator<Item = &'a Diagnostic>) 
         );
     }
     let mut rows: Vec<_> = counts.into_iter().collect();
-    rows.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+    rows.sort_by_key(|row| std::cmp::Reverse(row.1.0));
     for (rule, (n, fixable)) in rows {
         let mark = if fixable > 0 {
             format!("  [{fixable} fixable]")
