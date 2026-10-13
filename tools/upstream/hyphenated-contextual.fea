@@ -1,0 +1,7 @@
+languagesystem DFLT dflt;
+lookup LamAlef {
+    sub alef-ar.fina by alef-ar.isol.LA;
+} LamAlef;
+feature rlig {
+    sub lam-ar.init' lookup LamAlef alef-ar.fina' lookup LamAlef;
+} rlig;

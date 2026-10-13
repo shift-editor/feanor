@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["crates/fea-tools", "crates/fea-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# let-chains (`if let … && let …`) need Rust 1.88
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+authors = ["Kostya Farber"]
+# TODO before publishing: the public repository URL
+# repository = "https://github.com/OWNER/fea-tools"
+keywords = ["opentype", "fonts", "fea", "linter", "formatter"]
+
+[workspace.dependencies]
+fea-rs = "1.0"
+fea-tools = { path = "crates/fea-tools", version = "0.1.0" }

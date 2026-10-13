@@ -1,0 +1,4 @@
+languagesystem DFLT dflt;
+feature test {
+    sub [x.001 - x.003] by [a b c];
+} test;

@@ -1,0 +1,19 @@
+[package]
+name = "fea-tools"
+description = "Formatter and linter for OpenType feature files (.fea), built on fea-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories = ["development-tools", "text-processing", "parser-implementations"]
+readme = "README.md"
+# remove once the name, licence and repository are settled
+publish = false
+
+[dependencies]
+fea-rs = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+toml_edit = "0.23"

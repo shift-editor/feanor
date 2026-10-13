@@ -1,0 +1,26 @@
+[package]
+name = "fea-cli"
+description = "Command-line formatter and linter for OpenType feature files (.fea)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+# remove once the name, licence and repository are settled
+publish = false
+
+[[bin]]
+name = "fea"
+path = "src/main.rs"
+
+[dependencies]
+anstyle = "1"
+clap = { version = "4.5", features = ["derive"] }
+fea-rs = { workspace = true }
+fea-tools = { workspace = true }
+plist = "1"
+serde_json = "1"
+similar = "2"

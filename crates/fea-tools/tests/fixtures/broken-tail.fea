@@ -1,0 +1,9 @@
+@AlefHamzaAbove = [ uni0623 uni0672 uni0675 uni0623.fina];
+// glyphs can be removed from here
+@AlefHamzaBelow = [ uni0625 uni0673 uni0625.fina];
+
+@Digits = [ zero one two three];
+@Digits.small = [ zero.small one.small two.small three.small];
+
+// used only for kerning
+@RaaWaw = [ @aRaa.fina @aRaa.isol @aWaw.fina @aWaw.isol];
