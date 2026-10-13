@@ -200,6 +200,11 @@ impl Incremental {
         }
     }
 
+    /// The named things in the current text, as [`symbols`](crate::symbols()) finds them.
+    pub fn symbols(&self) -> crate::Symbols {
+        crate::Symbols::from_pieces(self.chunks.iter().map(|c| (c.start, &c.facts)))
+    }
+
     /// The diagnostics for the current text, as [`lint`](crate::lint()) reports them
     /// for a whole document (feature bodies aren't detected here).
     pub fn diagnostics(&mut self) -> Vec<Diagnostic> {
