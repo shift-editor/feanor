@@ -10,6 +10,9 @@
 //! - [`Project`] lints many files as one document: FEA `include()`,
 //!   C-preprocessor `#include` / `#ifdef`, and Glyphs-style sections.
 //! - [`Incremental`] keeps a document linted as it's edited.
+//! - [`symbols()`] finds where classes, mark classes, and lookups are defined
+//!   and used, and where glyph names are written, for go-to-definition,
+//!   find-references, and rename.
 //! - [`Config`] reads `feanor.toml`.
 //!
 //! Every range is a byte range into the text given; [`LineIndex`] converts to
@@ -35,6 +38,7 @@ mod glyphs;
 mod incremental;
 mod lint;
 pub mod project;
+mod symbols;
 
 pub use config::{Config, ConfigError, ParseError, SettingError};
 pub use diagnostic::{
@@ -48,6 +52,7 @@ pub use lint::{LintOptions, lint};
 pub use project::{
     BuildConfig, FileDiagnostic, Problem, ProblemKind, Project, ProjectError, configurations,
 };
+pub use symbols::{Symbol, SymbolKind, Symbols, symbols};
 
 /// Helpers for this crate's own tools and tests. Not part of the stable API.
 #[doc(hidden)]
