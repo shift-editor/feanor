@@ -48,10 +48,10 @@ await lint.getByRole("button", { name: /C001 class-length-mismatch/ }).click();
 check((await lint.innerText()).includes("Why it matters"), "rule explanation opens");
 
 // rules: every rule listed, details expand
-const rules = await page.locator("#rules > ul > li").count();
-check(rules === 11, `rules list shows ${rules} rules`);
-const g001 = page.locator("#rule-G001");
-await g001.getByText("How it works").click();
+const rules = await page.locator("#rules summary").count();
+check(rules === 11, `rules table lists ${rules} rules`);
+const g001 = page.locator("#rules details").filter({ hasText: "glyph-not-in-font" });
+await g001.locator("summary").click();
 const feaSpans = await g001.locator(".code-block span[style*=color]").count();
 check(feaSpans > 5, `rule docs highlight FEA (${feaSpans} coloured spans)`);
 
