@@ -49,7 +49,7 @@ check((await lint.innerText()).includes("Why it matters"), "rule explanation ope
 
 // rules: every rule listed, details expand
 const rules = await page.locator("#rules summary").count();
-check(rules === 11, `rules table lists ${rules} rules`);
+check(rules === 21, `rules table lists ${rules} rules`);
 const g001 = page.locator("#rules details").filter({ hasText: "glyph-not-in-font" });
 await g001.locator("summary").click();
 const feaSpans = await g001.locator(".code-block span[style*=color]").count();
@@ -64,6 +64,15 @@ const diffKeyword = await page.waitForFunction(() => {
   return spans.some((s) => ["sub", "feature", "lookup"].includes(s.textContent.trim()) && /#d32a61/i.test(s.getAttribute("style") ?? ""));
 }, null, { timeout: 10000 }).then(() => true, () => false);
 check(diffKeyword, "diffs highlight FEA keywords");
+
+// consequences: a scene shaped by HarfBuzz, with the code switching on the toggle
+const scene = page.locator("#consequences figure").first();
+check((await scene.locator("svg path").count()) === 5, "scene draws the five glyphs of Tokyo");
+await scene.hover();
+await scene.getByRole("button", { name: "Fixed" }).click();
+check(!(await scene.innerText()).includes("pos T o -180"), "fixed version shows the fixed code");
+await scene.getByRole("button", { name: "As written" }).click();
+check((await scene.innerText()).includes("R003 duplicate-pair"), "written version shows the R003 diagnostic");
 
 // speed: two hatched charts, a tooltip on hover, a table view
 const fast = page.locator("#fast");

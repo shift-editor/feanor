@@ -9,3 +9,13 @@ feature smpc {
     sub agrve by agrave.sc;
     sub f i by f_i;
 } smpc;
+
+feature kern {
+    pos T o -60;
+    pos T o -45;
+} kern;
+
+feature calt {
+    sub a' by a.alt;
+    sub a' c by a.short;
+} calt;

@@ -5,8 +5,10 @@ import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
 import { RuleDoc } from "@/components/RuleDoc";
 import { Section } from "@/components/Section";
+import { ShapingScene } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
+import duplicatePair from "@/scenes/duplicate-pair.json";
 
 const VERSION = "0.1.0";
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -74,6 +76,9 @@ function GithubIcon() {
     </svg>
   );
 }
+
+/** Scene code without the `languagesystem` line every scene starts with. */
+const withoutHeader = (fea: string) => fea.replace("languagesystem DFLT dflt;\n", "");
 
 export default async function Home() {
   const examples: Example[] = [
@@ -160,6 +165,28 @@ export default async function Home() {
           initial={example("lint.fea")}
           glyphs={glyphs}
           explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleDoc key={r.code} markdown={r.body} />]))}
+        />
+      </Section>
+
+      <Section
+        id="consequences"
+        title="What ships if you don't fix it"
+        lede={
+          <p>
+            Most of these mistakes compile without a word. Here is the same text set from the feature code as written
+            and as meant, shaped by HarfBuzz, the engine in Chrome, Android and Figma.
+          </p>
+        }
+      >
+        <ShapingScene
+          scene={duplicatePair}
+          pair={0}
+          code={{
+            written: <Code label="kern.fea" lang="fea" code={withoutHeader(duplicatePair.written.fea)} />,
+            meant: <Code label="kern.fea, fixed" lang="fea" code={withoutHeader(duplicatePair.meant.fea)} />,
+          }}
+          labels={{ written: "Ships", meant: "Meant" }}
+          fixed="The later value was the correction, so the first one goes. (Feanor's automatic fix removes the ignored line instead, which keeps the font as it ships.)"
         />
       </Section>
 
