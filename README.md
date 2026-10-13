@@ -57,7 +57,7 @@ family's upstream repository (2,762 files, 2.7 million lines):
 | Formatting twice gives the same text | 2,751 of 2,751 |
 | The stream of tokens and comments is unchanged | 2,751 of 2,751 |
 | fea-rs compiles the file to identical GSUB/GPOS/GDEF before and after | 1,901 of 1,901 that compile on their own |
-| fontTools feaLib (an independent compiler) does the same | 1,923 of 1,923 that compile on their own |
+| fontTools feaLib (an independent compiler) does the same | 1,922 of 1,922 that compile on their own (2 giant files exceed its time limit) |
 
 (11 files aren't UTF-8 and are reported as such; the rest are fragments that
 need other files to compile.) Truncating files at 200 points each, as when
