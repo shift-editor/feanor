@@ -5,8 +5,10 @@ import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
 import { Brief, RuleList } from "@/components/RuleList";
 import { Section } from "@/components/Section";
+import { ShapingScene } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
+import duplicatePair from "@/scenes/duplicate-pair.json";
 
 const VERSION = "0.1.0";
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -81,6 +83,9 @@ function GithubIcon() {
   );
 }
 
+/** Scene code without the `languagesystem` line every scene starts with. */
+const withoutHeader = (fea: string) => fea.replace("languagesystem DFLT dflt;\n", "");
+
 export default async function Home() {
   const examples: Example[] = [
     { id: "inter", label: "Inter: calt.fea", file: "inter-calt.fea" },
@@ -143,10 +148,10 @@ export default async function Home() {
         title="Safe to run on any font"
         lede={
           <p>
-            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on one
-            line are packed to the line width, classes you broke across lines keep your breaks, columns you aligned by
-            hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code from real
-            fonts.
+            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on
+            one line are packed to the line width, while classes you broke into rows keep your rows. Columns you
+            aligned by hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code
+            from real fonts.
           </p>
         }
       >
@@ -188,6 +193,25 @@ export default async function Home() {
           glyphs={glyphs}
           explanations={Object.fromEntries(rules.map((r) => [r.code, <Brief key={r.code} rule={r} />]))}
         />
+        <div id="consequences" className="mt-10 flex scroll-mt-16 flex-col gap-6">
+          <div className="flex max-w-[62ch] flex-col gap-2">
+            <h3 className="font-release-heading text-subheading">What ships if you don&apos;t fix it</h3>
+            <p className="font-copy text-copy text-secondary">
+              Most of these mistakes compile without a word. Here is the same text set from the feature code as
+              written and as meant, shaped by HarfBuzz, the engine in Chrome, Android and Figma.
+            </p>
+          </div>
+          <ShapingScene
+            scene={duplicatePair}
+            pair={0}
+            code={{
+              written: <Code label="kern.fea" lang="fea" code={withoutHeader(duplicatePair.written.fea)} />,
+              meant: <Code label="kern.fea, fixed" lang="fea" code={withoutHeader(duplicatePair.meant.fea)} />,
+            }}
+            labels={{ written: "Ships", meant: "Meant" }}
+            fixed="The later value was the correction, so the first one goes. (Feanor's automatic fix removes the ignored line instead, which keeps the font as it ships.)"
+          />
+        </div>
         <div id="rules" className="mt-10 flex scroll-mt-16 flex-col gap-6">
           <div className="flex max-w-[62ch] flex-col gap-2">
             <h3 className="font-release-heading text-subheading">All {rules.length} rules</h3>

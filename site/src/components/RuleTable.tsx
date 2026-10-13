@@ -17,6 +17,7 @@ export interface RuleRow {
 const FAMILIES: Record<string, string> = {
   C: "Classes",
   L: "Lookups",
+  R: "Rule logic",
   G: "Glyphs",
   T: "Feature tags",
   X: "Characters",

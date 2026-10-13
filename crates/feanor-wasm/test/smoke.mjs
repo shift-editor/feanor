@@ -65,7 +65,7 @@ test("a document stays in step with lint() as it's edited", () => {
 });
 
 test("explains rules", () => {
-  assert.equal(rules().length, 11);
+  assert.equal(rules().length, 21);
   assert.match(explain("G001"), /^# G001 glyph-not-in-font/);
   assert.equal(explain("nope"), undefined);
   assert.match(version(), /^\d+\.\d+\.\d+/);

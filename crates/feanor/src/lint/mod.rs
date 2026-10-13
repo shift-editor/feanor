@@ -14,6 +14,8 @@ use crate::glyphs::GlyphNames;
 use crate::diagnostic::{Applicability, Diagnostic, Fix, Related, Rule, Severity, TextEdit};
 use crate::fmt::{parse_glyph_map, parse_with_diagnostics};
 
+mod lookups;
+
 /// What the linter knows besides the text.
 ///
 /// ```
@@ -196,6 +198,14 @@ pub(crate) struct Facts {
     class_uses: Vec<(String, Range<usize>)>,
     lookup_uses: Vec<(String, Range<usize>)>,
     sub_pairs: Vec<SubPair>,
+    /// Feature and lookup blocks, for the rules about what lookups do.
+    blocks: Vec<lookups::Block>,
+    /// `markClass` statements: the class and the glyphs each one adds.
+    mark_class_members: Vec<(String, Option<Vec<Member>>)>,
+    /// Top-level `languagesystem` statements.
+    languagesystems: Vec<lookups::LanguageSystem>,
+    /// Top-level feature blocks, for the order of `languagesystem` statements.
+    feature_starts: Vec<lookups::FeatureStart>,
 }
 
 /// A class definition: name, the name's range, and its members (None if not expandable).
@@ -243,14 +253,9 @@ pub(crate) fn analyze(source: &str, ctx: &LintOptions) -> Facts {
         };
         let span = d.span();
         let range = span.start.min(source.len())..span.end.min(source.len());
-        facts.local.push(Diagnostic {
-            rule: Rule::Syntax,
-            severity,
-            range,
-            message: d.text().to_string(),
-            fixes: Vec::new(),
-            related: None,
-        });
+        facts
+            .local
+            .push(parse_diagnostic(d.text(), severity, range, source));
     }
     unknown_feature_tag(&items, &mut facts.local);
     invisible_characters(&items, source, &mut facts.local);
@@ -260,7 +265,51 @@ pub(crate) fn analyze(source: &str, ctx: &LintOptions) -> Facts {
     duplicate_candidates(&items, &mut facts);
     class_facts(&items, source, ctx.glyphs, &mut facts);
     definition_facts(&items, &mut facts);
+    lookups::block_facts(&items, source, ctx.glyphs, &mut facts);
     facts
+}
+
+/// A parse error or warning from fea-rs, as the rule that explains it best.
+fn parse_diagnostic(
+    text: &str,
+    severity: Severity,
+    range: Range<usize>,
+    source: &str,
+) -> Diagnostic {
+    let stray_semicolon = &source[range.clone()] == ";"
+        && (text == "';' should only follow a statement"
+            || text == "Unexpected token ';', expected global keyword.");
+    if stray_semicolon {
+        let mut d = Diagnostic::new(
+            Rule::StraySemicolon,
+            severity,
+            range.clone(),
+            "stray ';' with no statement to end",
+        );
+        d.fixes.push(Fix::new(
+            "Remove the ';'",
+            vec![TextEdit {
+                range,
+                new_text: String::new(),
+            }],
+            Applicability::Safe,
+        ));
+        return d;
+    }
+    // linting one file doesn't follow includes; that's not an error in the file
+    if text.ends_with("'includes are not followed'") {
+        let path = &source[range.clone()];
+        return Diagnostic::new(
+            Rule::Project,
+            Severity::Hint,
+            range,
+            format!(
+                "includes {path}, which isn't checked when linting one file; lint the whole \
+                 project to check them together"
+            ),
+        );
+    }
+    Diagnostic::new(Rule::Syntax, severity, range, text)
 }
 
 /// Combine the facts of every piece (with its byte offset) into diagnostics.
@@ -292,6 +341,7 @@ pub(crate) fn combine<'f>(
     }
 
     class_length_mismatch(pieces.clone(), &mut out);
+    lookups::check(pieces.clone(), &mut out);
     definitions(pieces, ctx.project, &mut out);
     drop_covered_syntax_errors(&mut out);
     out.sort_by(|a, b| {
@@ -347,7 +397,10 @@ fn missing_glyph_diagnostics<'f>(
             {
                 let value = cache
                     .entry(name.clone())
-                    .or_insert_with(|| closest(name, font.iter(), 2).map(String::from))
+                    .or_insert_with(|| {
+                        let plausible = font.iter().filter(|c| plausible_typo(name, c));
+                        closest(name, plausible, 2).map(String::from)
+                    })
                     .clone();
                 suggestions.entry(name.clone()).or_insert(value).clone()
             } else {
@@ -549,17 +602,24 @@ fn class_facts(items: &[Item], source: &str, font: Option<&GlyphNames>, facts: &
     }
 }
 
+/// Every class definition by name; the last one wins, as in a single pass over the document.
+fn class_table<'f>(
+    pieces: impl Iterator<Item = (usize, &'f Facts)>,
+) -> HashMap<&'f str, &'f Option<Vec<Member>>> {
+    let mut table = HashMap::new();
+    for (_, f) in pieces {
+        for (name, _, value) in &f.class_defs {
+            table.insert(name.as_str(), value);
+        }
+    }
+    table
+}
+
 fn class_length_mismatch<'f>(
     pieces: impl Iterator<Item = (usize, &'f Facts)> + Clone,
     out: &mut Vec<Diagnostic>,
 ) {
-    // the last definition of a name wins, as in a single pass over the document
-    let mut table: HashMap<&str, &Option<Vec<Member>>> = HashMap::new();
-    for (_, f) in pieces.clone() {
-        for (name, _, value) in &f.class_defs {
-            table.insert(name, value);
-        }
-    }
+    let table = class_table(pieces.clone());
     fn expand(
         members: &[Member],
         table: &HashMap<&str, &Option<Vec<Member>>>,
@@ -1010,6 +1070,39 @@ fn definitions<'f>(
 }
 
 // ---------------------------------------------------------------- helpers
+
+/// Whether `candidate` could be what a misspelled glyph `name` meant: names a
+/// small edit apart often name different characters, and suggesting one of
+/// those would point at the wrong glyph. A missing or extra separator (`bsc`,
+/// `b.sc`) is a typo. Otherwise they must have the same parts (split at `_`
+/// and `.`), and a part that differs can't be a code point (`uFF10`, `u1F10`),
+/// a single letter (`f_f`, `f_j`), or differ only in its digits (`ss01`, `ss02`).
+fn plausible_typo(name: &str, candidate: &str) -> bool {
+    let without_separators = |s: &str| s.replace(['_', '.'], "");
+    if without_separators(name) == without_separators(candidate) {
+        return true;
+    }
+    let parts = |s: &str| s.split(['_', '.']).map(String::from).collect::<Vec<_>>();
+    let (a, b) = (parts(name), parts(candidate));
+    if a.len() != b.len() {
+        return false;
+    }
+    let is_code_point = |p: &str| {
+        let hex = p.strip_prefix("uni").or_else(|| p.strip_prefix('u'));
+        hex.is_some_and(|h| (4..=6).contains(&h.len()) && h.chars().all(|c| c.is_ascii_hexdigit()))
+    };
+    let letters = |p: &str| {
+        p.chars()
+            .filter(|c| !c.is_ascii_digit())
+            .collect::<String>()
+    };
+    a.iter().zip(&b).filter(|(x, y)| x != y).all(|(x, y)| {
+        let code_points = is_code_point(x) && is_code_point(y);
+        let single_letter = x.chars().count() <= 1 || y.chars().count() <= 1;
+        let only_digits = letters(x) == letters(y);
+        !(code_points || single_letter || only_digits)
+    })
+}
 
 /// Closest candidate within `max` edits (ties: first). Skips exact matches.
 fn closest<'c>(

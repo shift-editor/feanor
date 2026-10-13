@@ -37,3 +37,7 @@ eight.osf
 nine.osf
 acutecomb
 gravecomb
+T
+o
+a.alt
+a.short

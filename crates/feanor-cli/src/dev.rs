@@ -34,6 +34,15 @@ pub(crate) enum DevCommand {
         #[arg(long)]
         glyphs: Option<PathBuf>,
     },
+    /// Compile with fea-rs and print its errors and warnings in full.
+    Compile {
+        file: PathBuf,
+        #[arg(long)]
+        glyphs: Option<PathBuf>,
+        /// Write the compiled bytes here.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
     /// Time lint and format in-process (median of several runs), as JSON.
     Bench {
         file: PathBuf,
@@ -51,6 +60,9 @@ pub(crate) fn run(command: DevCommand) -> Result<ExitCode, String> {
         DevCommand::Verify { file, glyphs } => verify(&file, glyphs.as_deref()),
         DevCommand::Truncate { file } => truncate(&file),
         DevCommand::Incremental { file, glyphs } => incremental(&file, glyphs.as_deref()),
+        DevCommand::Compile { file, glyphs, out } => {
+            compile_report(&file, glyphs.as_deref(), out.as_deref())
+        }
         DevCommand::Bench { file, glyphs, runs } => bench(&file, glyphs.as_deref(), runs),
     }
 }
@@ -364,4 +376,42 @@ fn bench(path: &Path, glyphs: Option<&Path>, runs: usize) -> Result<ExitCode, St
     });
     println!("{report}");
     Ok(ExitCode::SUCCESS)
+}
+
+fn compile_report(
+    path: &Path,
+    glyphs: Option<&Path>,
+    out: Option<&Path>,
+) -> Result<ExitCode, String> {
+    let src = text_of(path)?;
+    let font = glyphs
+        .map(load_glyphs)
+        .transpose()?
+        .map(|g| fea_rs_glyphs(g.iter().map(String::from)))
+        .transpose()?;
+    let map = glyph_map_with_file_names(&src, font.as_ref(), false);
+    let result = Compiler::<NopFeatureProvider, NopVariationInfo>::new(path, &map)
+        .print_warnings(true)
+        .compile_binary();
+    match result {
+        Ok(bytes) => {
+            if let Some(out) = out {
+                std::fs::write(out, &bytes).map_err(|e| format!("{}: {e}", out.display()))?;
+            }
+            // a fingerprint, to tell whether two sources compile to the same tables
+            let mut hasher = std::hash::DefaultHasher::new();
+            std::hash::Hash::hash(&bytes, &mut hasher);
+            let fingerprint = std::hash::Hasher::finish(&hasher);
+            println!(
+                "{}: compiled ({} bytes, {fingerprint:016x})",
+                path.display(),
+                bytes.len()
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        Err(e) => {
+            println!("{}: failed\n{}", path.display(), e.display_verbose());
+            Ok(ExitCode::FAILURE)
+        }
+    }
 }

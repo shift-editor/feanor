@@ -688,6 +688,7 @@ fn layout_stmt(
     elems: &[Elem],
     depth: usize,
     broken: &HashSet<u32>,
+    kept: &HashSet<u32>,
     break_by: bool,
     opts: &Settings,
 ) -> Vec<String> {
@@ -734,7 +735,16 @@ fn layout_stmt(
                 let items_indent = format!("{open_indent}{}", opts.indent);
                 lay.flush(&items_indent);
                 i += 1;
-                i = fill_class(elems, i, class, &mut lay, &items_indent, &open_indent);
+                let keeps_breaks = kept.contains(&class);
+                i = fill_class(
+                    elems,
+                    i,
+                    class,
+                    keeps_breaks,
+                    &mut lay,
+                    &items_indent,
+                    &open_indent,
+                );
                 prev = match &elems[i - 1] {
                     Elem::Tok(t) => Some(t),
                     _ => prev,
@@ -762,10 +772,14 @@ fn layout_stmt(
 }
 
 /// Fill the items of a broken class literal; returns the index just past its closing bracket.
+///
+/// With `keeps_breaks`, each line the author wrote starts a new line; any line
+/// still too long wraps. Otherwise the members are packed to the width.
 fn fill_class(
     elems: &[Elem],
     mut i: usize,
     class: u32,
+    keeps_breaks: bool,
     lay: &mut Layout,
     inner: &str,
     base: &str,
@@ -811,6 +825,9 @@ fn fill_class(
                     lay.flush(inner);
                     lay.lines.push(String::new());
                 }
+                if keeps_breaks && first.nl_before >= 1 && !lay.fresh {
+                    lay.flush(inner);
+                }
                 if !lay.fresh && lay.width() + 1 + text.chars().count() > width {
                     lay.flush(inner);
                 }
@@ -826,22 +843,43 @@ fn fill_class(
     i
 }
 
-fn classes_in(elems: &[Elem]) -> Vec<(u32, usize, bool)> {
-    // (class id, flat length, must break because of comments/blank lines)
-    let mut out: Vec<(u32, usize, bool)> = Vec::new();
+/// What layout a class literal in one statement needs.
+struct ClassInfo {
+    id: u32,
+    /// Length of the class written on one line.
+    flat_len: usize,
+    /// The class must be a block: it holds a comment, a blank line, or keeps its breaks.
+    must_break: bool,
+    /// The author started the class on a new line after `[`, so their line
+    /// breaks are kept (Prettier's rule for objects). Written on one line, it's packed.
+    keeps_breaks: bool,
+}
+
+fn classes_in(elems: &[Elem]) -> Vec<ClassInfo> {
+    let mut out: Vec<ClassInfo> = Vec::new();
     for e in elems {
         match e {
-            Elem::Tok(t) if t.open.is_some() => out.push((t.open.unwrap(), 0, false)),
+            Elem::Tok(t) if t.open.is_some() => out.push(ClassInfo {
+                id: t.open.unwrap(),
+                flat_len: 0,
+                must_break: false,
+                keeps_breaks: false,
+            }),
             Elem::Tok(t) => {
                 if let Some((c, unit)) = t.class
-                    && let Some(entry) = out.iter_mut().find(|x| x.0 == c)
+                    && let Some(entry) = out.iter_mut().find(|x| x.id == c)
                 {
-                    entry.1 += t.text.len() + 1;
+                    let first_member = entry.flat_len == 0;
+                    entry.flat_len += t.text.len() + 1;
+                    if first_member && t.nl_before >= 1 {
+                        entry.keeps_breaks = true;
+                        entry.must_break = true;
+                    }
                     // a blank line between members is a group break the author
                     // made; one right after `[` isn't printed, so it can't
                     // force a block (or the next pass would undo it)
                     if t.nl_before >= 2 && unit > 0 {
-                        entry.2 = true;
+                        entry.must_break = true;
                     }
                 }
             }
@@ -849,8 +887,8 @@ fn classes_in(elems: &[Elem]) -> Vec<(u32, usize, bool)> {
                 class: Some((c, _)),
                 ..
             } => {
-                if let Some(entry) = out.iter_mut().find(|x| x.0 == *c) {
-                    entry.2 = true;
+                if let Some(entry) = out.iter_mut().find(|x| x.id == *c) {
+                    entry.must_break = true;
                 }
             }
             _ => {}
@@ -866,7 +904,16 @@ fn render_code(
     opts: &Settings,
 ) -> Vec<String> {
     let classes = classes_in(elems);
-    let mut broken: HashSet<u32> = classes.iter().filter(|c| c.2).map(|c| c.0).collect();
+    let mut broken: HashSet<u32> = classes
+        .iter()
+        .filter(|c| c.must_break)
+        .map(|c| c.id)
+        .collect();
+    let kept: HashSet<u32> = classes
+        .iter()
+        .filter(|c| c.keeps_breaks)
+        .map(|c| c.id)
+        .collect();
     let is_class_def = elems.iter().any(
         |e| matches!(e, Elem::Tok(t) if t.kind == Kind::Eq && t.parent == Kind::GlyphClassDefNode),
     );
@@ -876,19 +923,28 @@ fn render_code(
     let overflows = |lines: &[String]| lines.iter().any(|l| l.chars().count() > opts.width);
 
     let mut break_by = false;
-    let mut lines = layout_stmt(elems, depth, &broken, break_by, opts);
+    let mut lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
     if overflows(&lines) && !is_class_def {
         break_by = true;
-        lines = layout_stmt(elems, depth, &broken, break_by, opts);
+        lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
     }
     while overflows(&lines) {
         let candidate = classes
             .iter()
-            .filter(|c| !broken.contains(&c.0) && c.1 >= min_break)
-            .max_by_key(|c| c.1);
+            .filter(|c| !broken.contains(&c.id) && c.flat_len >= min_break)
+            .max_by_key(|c| c.flat_len);
         let Some(c) = candidate else { break };
-        broken.insert(c.0);
-        lines = layout_stmt(elems, depth, &broken, break_by, opts);
+        broken.insert(c.id);
+        lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
+    }
+    // once a class is a block, `by` may fit back on the rule's line; prefer
+    // that, since the next pass starts with the block (its rows are kept)
+    // and would lay the rule out this way
+    if break_by && !overflows(&lines) {
+        let joined = layout_stmt(elems, depth, &broken, &kept, false, opts);
+        if !overflows(&joined) {
+            lines = joined;
+        }
     }
 
     if let Some(comment) = trailing {
@@ -1093,10 +1149,19 @@ fn one_line_block<'a>(
         merged.extend(elems.iter().cloned());
         if next.stmt.closes_block() {
             let has_comment = merged.iter().any(|e| matches!(e, Elem::Comment { .. }));
-            if has_comment {
+            // a class whose line breaks are kept can't sit on one line
+            let keeps_breaks = classes_in(&merged).iter().any(|c| c.keeps_breaks);
+            if has_comment || keeps_breaks {
                 return None;
             }
-            let lines = layout_stmt(&merged, open.depth, &HashSet::new(), false, opts);
+            let lines = layout_stmt(
+                &merged,
+                open.depth,
+                &HashSet::new(),
+                &HashSet::new(),
+                false,
+                opts,
+            );
             let fits = lines.len() == 1 && lines[0].chars().count() <= opts.width;
             if !fits {
                 return None;
