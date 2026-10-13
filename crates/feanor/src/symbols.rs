@@ -305,7 +305,10 @@ feature mark { pos base @lc <anchor 250 450> mark @TOP; } mark;
 
         assert_eq!(document.symbols(), symbols(document.text()));
         let lc = document.symbols();
-        assert_eq!(lc.get(SymbolKind::Class, "@lc").unwrap().references.len(), 3);
+        assert_eq!(
+            lc.get(SymbolKind::Class, "@lc").unwrap().references.len(),
+            3
+        );
     }
 
     #[test]
