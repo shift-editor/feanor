@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/feanor", "crates/feanor-cli"]
+members = ["crates/feanor", "crates/feanor-cli", "crates/feanor-wasm"]
 
 [workspace.package]
 version = "0.1.0"
@@ -15,3 +15,8 @@ keywords = ["opentype", "fonts", "fea", "linter", "formatter"]
 [workspace.dependencies]
 fea-rs = "1.0"
 feanor = { path = "crates/feanor", version = "0.1.0" }
+
+[profile.release]
+# small WebAssembly: the CLI doesn't notice, the browser does
+lto = true
+codegen-units = 1

@@ -9,6 +9,17 @@ cargo test --workspace
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
+## WebAssembly
+
+`crates/feanor-wasm/build.sh` builds the package into `crates/feanor-wasm/pkg`.
+It needs `wasm-bindgen-cli` at the version pinned in that crate's
+`Cargo.toml`, and `wasm-opt`; with Nix:
+
+```console
+nix shell nixpkgs#wasm-bindgen-cli nixpkgs#binaryen --command crates/feanor-wasm/build.sh
+node --test crates/feanor-wasm/test/smoke.mjs
+```
+
 ## Correctness harnesses
 
 The formatter promises never to change what a font does; the linter promises

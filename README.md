@@ -151,6 +151,7 @@ to run these checks.
 |---|---|
 | [`feanor`](crates/feanor) | Library: formatting, linting, projects, incremental linting, configuration |
 | [`feanor-cli`](crates/feanor-cli) | The `feanor` command-line tool |
+| [`feanor-wasm`](crates/feanor-wasm) | WebAssembly build for browsers and Node |
 
 ## License
 
