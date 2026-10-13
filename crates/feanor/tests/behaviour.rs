@@ -6,7 +6,7 @@ use std::path::Path;
 use feanor::internal::{first_token_mismatch, lint_whole_document};
 use feanor::{
     Applicability, Diagnostic, FormatOptions, GlyphNames, Incremental, Indent, LintOptions,
-    Project, Rule, apply_noqa, detect_indent, format, lint,
+    Project, Rule, Severity, apply_noqa, detect_indent, format, lint,
 };
 
 fn four_spaces() -> FormatOptions {
@@ -397,7 +397,17 @@ fn ranges_point_into_feature_bodies() {
 
 #[test]
 fn incremental_linting_matches_a_full_lint_after_every_edit() {
-    let mut doc = Incremental::new(DEMO.repeat(3), plain());
+    assert_incremental_matches_full_lint(&DEMO.repeat(3));
+}
+
+#[test]
+fn incremental_linting_matches_a_full_lint_for_the_lookup_rules() {
+    assert_incremental_matches_full_lint(&LOOKUP_DEMO.repeat(2));
+}
+
+/// 300 random edits; after each, the incremental linter must agree with a full lint.
+fn assert_incremental_matches_full_lint(text: &str) {
+    let mut doc = Incremental::new(text.to_string(), plain());
     let mut seed: u64 = 0x9E37_79B9_7F4A_7C15;
     for step in 0..300 {
         seed ^= seed << 13;
@@ -427,6 +437,306 @@ fn incremental_linting_matches_a_full_lint_after_every_edit() {
         let full = lint_whole_document(doc.text(), &plain());
         assert_eq!(key(doc.diagnostics()), key(full), "after edit {step}");
     }
+}
+
+// ------------------------------------------------------------------ lookup rules
+
+/// A document with one of each mistake the lookup rules find.
+const LOOKUP_DEMO: &str = "languagesystem DFLT dflt;
+markClass acutecomb <anchor 0 500> @TOP;
+markClass acutecomb <anchor 0 -10> @BOTTOM;
+lookup P { pos a 10; } P;
+lookup ALT { sub a by a.alt; } ALT;
+lookup EMPTY { } EMPTY;
+feature calt {
+    sub a' by b;
+    sub a' c by d;
+    sub e' lookup ALT t;
+    sub t' lookup P o;
+} calt;
+feature ss01 { sub g by g.alt; sub g by g.ss01; } ss01;
+feature kern { pos T o -60; pos T o -45; } kern;
+feature mark { pos base a <anchor 250 500> mark @TOP; pos base a <anchor 250 0> mark @BOTTOM; } mark;
+languagesystem latn dflt;
+feature liga { sub f i by f_i;; } liga;
+";
+
+fn codes(src: &str) -> Vec<&'static str> {
+    lint(src, &plain()).iter().map(|d| d.rule.code()).collect()
+}
+
+#[test]
+fn every_lookup_rule_fires_on_the_lookup_demo() {
+    let got = codes(LOOKUP_DEMO);
+    for code in [
+        "E002", "E003", "C005", "L003", "R001", "R002", "R003", "R004", "R005",
+    ] {
+        assert!(got.contains(&code), "{code} missing from {got:?}");
+    }
+}
+
+#[test]
+fn reports_a_contextual_rule_an_earlier_rule_always_matches_first() {
+    let src = "feature calt {\n    sub a' by b;\n    sub a' c by d;\n} calt;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::UnreachableRule]);
+    assert_eq!(&src[diags[0].range.clone()], "sub a' c by d;");
+    assert_eq!(
+        &src[diags[0].related.as_ref().unwrap().range.clone()],
+        "sub a' by b;"
+    );
+}
+
+#[test]
+fn a_specific_rule_before_a_general_one_is_fine() {
+    assert!(codes("feature calt {\n    sub a' c by d;\n    sub a' by b;\n} calt;\n").is_empty());
+}
+
+#[test]
+fn an_ignore_rule_can_make_a_later_rule_unreachable() {
+    let src = "feature calt {\n    ignore sub a';\n    sub a' c by d;\n} calt;\n";
+    assert_eq!(codes(src), ["R001"]);
+    // and narrower ignores are the usual way to carve out exceptions
+    assert!(codes("feature calt {\n    ignore sub x a';\n    sub a' by b;\n} calt;\n").is_empty());
+}
+
+#[test]
+fn compares_rules_only_within_one_lookup() {
+    // a lookupflag starts a new lookup, so the second rule runs in its own
+    let src = "feature calt {\n    sub a' by b;\n    lookupflag IgnoreMarks;\n    sub a' c by d;\n} calt;\n";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn expands_classes_to_find_unreachable_rules() {
+    let src = "@V = [a e];\nfeature calt {\n    sub @V' by b;\n    sub e' c by d;\n} calt;\n";
+    assert_eq!(codes(src), ["R001"]);
+}
+
+#[test]
+fn reports_a_glyph_substituted_twice_in_one_lookup() {
+    let src = "feature ss01 {\n    sub [a e] by [a.alt e.alt];\n    sub e by e.ss01;\n} ss01;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::DuplicateSubstitution]);
+    assert_eq!(diags[0].severity, Severity::Error);
+    assert!(
+        diags[0].message.starts_with("e is already substituted"),
+        "{}",
+        diags[0].message
+    );
+}
+
+#[test]
+fn reports_a_ligature_defined_twice() {
+    let src = "feature liga {\n    sub f i by f_i;\n    sub f i by fi;\n} liga;\n";
+    assert_eq!(codes(src), ["R002"]);
+}
+
+#[test]
+fn aalt_may_list_one_glyph_several_times() {
+    // Open Sans: alternates in aalt are written this way
+    let src = "feature aalt {\n    sub Eng by Eng.alt1;\n    sub Eng by Eng.alt2;\n} aalt;\n";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn reports_a_kerning_pair_positioned_twice_and_removes_the_ignored_rule() {
+    // Farsan: the second value was silently ignored
+    let src = "feature kern {\n    pos gjB gjDha -7;\n    pos gjB gjDha -10;\n} kern;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::DuplicatePair]);
+    assert_eq!(diags[0].fixes[0].applicability, Applicability::Safe);
+    let fixed = feanor::apply_fixes(src, &diags, Applicability::Safe);
+    assert_eq!(fixed, "feature kern {\n    pos gjB gjDha -7;\n} kern;\n");
+}
+
+#[test]
+fn class_kerning_pairs_are_not_duplicates_of_glyph_pairs() {
+    // glyph pairs take precedence over class pairs by design
+    let src = "feature kern {\n    pos [a e] v -10;\n    pos a v -20;\n} kern;\n";
+    assert!(codes(src).is_empty());
+    // with enum, the class operands become glyph pairs, and a v is then repeated
+    let src = "feature kern {\n    enum pos [a e] v -10;\n    pos a v -20;\n} kern;\n";
+    assert_eq!(codes(src), ["R003"]);
+}
+
+#[test]
+fn reports_a_lookup_of_the_wrong_kind() {
+    let src = "lookup P { pos a 10; } P;\nfeature calt {\n    sub a' lookup P b;\n} calt;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::WrongLookupType]);
+    assert_eq!(&src[diags[0].range.clone()], "P");
+}
+
+#[test]
+fn reports_a_lookup_called_on_glyphs_it_has_no_rule_for() {
+    let src =
+        "lookup ALT { sub a by a.alt; } ALT;\nfeature calt {\n    sub e' lookup ALT t;\n} calt;\n";
+    assert_eq!(codes(src), ["R005"]);
+    // covering some of the marked glyphs is how such lookups are usually meant
+    let src = "lookup ALT { sub a by a.alt; } ALT;\nfeature calt {\n    sub [a e]' lookup ALT t;\n} calt;\n";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn reports_mark_classes_that_share_a_glyph_in_one_lookup() {
+    let src = "markClass acutecomb <anchor 0 500> @TOP;\nmarkClass acutecomb <anchor 0 -10> @BOTTOM;\nfeature mark {\n    pos base a <anchor 250 500> mark @TOP;\n    pos base a <anchor 250 0> mark @BOTTOM;\n} mark;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::MarkClassConflict]);
+    assert!(
+        diags[0]
+            .message
+            .starts_with("acutecomb is in both @TOP and @BOTTOM")
+    );
+    // in separate lookups, one glyph may be in both
+    let split = "markClass acutecomb <anchor 0 500> @TOP;\nmarkClass acutecomb <anchor 0 -10> @BOTTOM;\nfeature mark {\n    lookup T { pos base a <anchor 250 500> mark @TOP; } T;\n    lookup B { pos base a <anchor 250 0> mark @BOTTOM; } B;\n} mark;\n";
+    assert!(codes(split).is_empty());
+}
+
+#[test]
+fn reports_empty_features_and_lookups() {
+    assert_eq!(
+        codes("lookup E { } E;\nfeature liga { lookup E; } liga;\n"),
+        ["L003"]
+    );
+    assert_eq!(
+        codes("feature ss01 { featureNames { name \"Alt\"; }; } ss01;\n"),
+        ["L003"]
+    );
+    assert!(
+        codes("feature aalt { feature smcp; } aalt;\nfeature smcp { sub a by a.sc; } smcp;\n")
+            .is_empty()
+    );
+}
+
+#[test]
+fn reports_a_languagesystem_after_a_feature_and_moves_it_up() {
+    let src = "languagesystem DFLT dflt;\nfeature liga { sub f i by f_i; } liga;\nlanguagesystem latn dflt;\nfeature kern { pos a v -10; } kern;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::LanguagesystemAfterFeature]);
+    assert_eq!(diags[0].fixes[0].applicability, Applicability::Unsafe);
+    let fixed = feanor::apply_fixes(src, &diags, Applicability::Unsafe);
+    assert_eq!(
+        fixed,
+        "languagesystem DFLT dflt;\nlanguagesystem latn dflt;\nfeature liga { sub f i by f_i; } liga;\nfeature kern { pos a v -10; } kern;\n"
+    );
+}
+
+#[test]
+fn reports_stray_semicolons_with_fea_rs_severity_and_removes_them() {
+    let src = "feature liga {\n    sub f i by f_i;;\n} liga;;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::StraySemicolon, Rule::StraySemicolon]);
+    assert_eq!(diags[0].severity, Severity::Warning, "inside a block");
+    assert_eq!(diags[1].severity, Severity::Error, "at the top level");
+    let fixed = feanor::apply_fixes(src, &diags, Applicability::Safe);
+    assert_eq!(fixed, "feature liga {\n    sub f i by f_i;\n} liga;\n");
+}
+
+#[test]
+fn a_repeat_with_the_same_result_is_redundant_not_a_conflict() {
+    // Rokkitt, Coiny and Recursive repeat rules exactly; that changes nothing
+    let ligature = "feature liga {\n    sub f f by f_f;\n    sub f f by f_f;\n} liga;\n";
+    assert_eq!(codes(ligature), ["R006"]);
+    let pair = "feature kern {\n    pos T o -60;\n    pos T o -60;\n} kern;\n";
+    let diags = lint(pair, &plain());
+    assert_eq!(rules(&diags), [Rule::RedundantRule]);
+    assert_eq!(diags[0].severity, Severity::Hint);
+    let fixed = feanor::apply_fixes(pair, &diags, Applicability::Safe);
+    assert_eq!(fixed, "feature kern {\n    pos T o -60;\n} kern;\n");
+    let ignore =
+        "feature calt {\n    ignore sub x a';\n    ignore sub x a';\n    sub a' by b;\n} calt;\n";
+    assert_eq!(codes(ignore), ["R006"]);
+}
+
+#[test]
+fn a_longer_inline_ligature_after_a_shorter_one_still_forms() {
+    // checked with HarfBuzz: both compilers put the ligatures in one lookup
+    // that forms the longest match, so "x a b c" becomes "x abc"
+    let src = "feature calt {\n    sub x a' b' by ab;\n    sub x a' b' c' by abc;\n} calt;\n";
+    assert!(codes(src).is_empty());
+    // an ignore still stops it
+    let src = "feature calt {\n    ignore sub x a' b';\n    sub x a' b' c' by abc;\n} calt;\n";
+    assert_eq!(codes(src), ["R001"]);
+}
+
+#[test]
+fn a_narrower_rule_that_does_the_same_is_redundant() {
+    // Cambay: a longer backtrack with the same replacement never runs, and loses nothing
+    let src = "feature calt {\n    sub b c a' by a.alt;\n    sub x b c a' by a.alt;\n} calt;\n";
+    assert_eq!(codes(src), ["R006"]);
+}
+
+#[test]
+fn spacing_doesnt_make_a_kerning_value_different() {
+    let src = "feature kern {\n    pos A V <-80 0 -80 0>;\n    pos A V < -80 0 -80 0 >;\n} kern;\n";
+    assert_eq!(codes(src), ["R006"]);
+    // Arimo: a placement and an advance are different values, so the second is ignored
+    let src = "feature kern {\n    pos A V <-41 0 0 0>;\n    pos A V -41;\n} kern;\n";
+    assert_eq!(codes(src), ["R003"]);
+}
+
+#[test]
+fn language_statements_split_a_lookup_block() {
+    // Ubuntu, Lilex: the same substitution for each language, inside one lookup block
+    let src = "feature locl {\n    lookup L {\n        script latn;\n        language ROM;\n        sub Scedilla by Scommaaccent;\n        language MOL;\n        sub Scedilla by Scommaaccent;\n    } L;\n} locl;\n";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn a_block_with_an_automatic_code_comment_isnt_empty() {
+    // Amiri: ufo2ft inserts the generated mark rules at this comment
+    assert!(codes("feature mark {\n# Automatic Code\n} mark;\n").is_empty());
+}
+
+#[test]
+fn finds_languagesystem_order_in_files_with_old_mac_line_endings() {
+    // Bungee: carriage returns only, so the whole file is one line to `\n`
+    let src = "languagesystem DFLT dflt;\rlanguagesystem latn dflt;\rfeature liga { sub f i by f_i; } liga;\r";
+    assert!(codes(src).is_empty());
+    let late = "languagesystem DFLT dflt;\rfeature liga { sub f i by f_i; } liga;\rlanguagesystem latn dflt;\r";
+    assert_eq!(codes(late), ["E003"]);
+}
+
+#[test]
+fn judges_only_lookups_that_see_the_glyphs_the_rule_names() {
+    // Kanit: once the ligature forms at l, the call at periodcentered sees a different sequence
+    let src = "lookup LIG { sub l periodcentered l by ldot_l; } LIG;\nfeature locl {\n    sub l' lookup LIG periodcentered' lookup LIG l;\n} locl;\n";
+    assert!(codes(src).is_empty());
+    // a second lookup at one position sees the first one's result
+    let src = "lookup A { sub e by e.alt; } A;\nlookup B { sub e.alt by e.alt2; } B;\nfeature calt {\n    sub e' lookup A lookup B t;\n} calt;\n";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn an_include_in_one_file_is_a_hint_to_lint_the_project() {
+    let diags = lint(
+        "include(classes.fea);\nfeature liga { sub f i by f_i; } liga;\n",
+        &plain(),
+    );
+    assert_eq!(rules(&diags), [Rule::Project]);
+    assert_eq!(diags[0].severity, Severity::Hint);
+}
+
+#[test]
+fn suggests_glyph_names_only_for_likely_typos() {
+    let font = glyphs(&["agrave", "b.sc", "u1F10", "uni00A0", "f_j", "a.ss02"]);
+    let suggestion = |name: &str| {
+        let src = format!("feature calt {{ sub {name} by b.sc; }} calt;\n");
+        let diags = lint(&src, &LintOptions::default().with_glyphs(&font));
+        let missing = diags
+            .iter()
+            .find(|d| d.rule == Rule::GlyphNotInFont)
+            .unwrap();
+        missing.fixes.first().map(|f| f.edits[0].new_text.clone())
+    };
+    assert_eq!(suggestion("agrve").as_deref(), Some("agrave"));
+    assert_eq!(suggestion("bsc").as_deref(), Some("b.sc"));
+    // a different code point, letter or numbered variant names a different glyph
+    assert_eq!(suggestion("uFF10"), None);
+    assert_eq!(suggestion("uni0000"), None);
+    assert_eq!(suggestion("f_f"), None);
+    assert_eq!(suggestion("a.ss01"), None);
 }
 
 // ------------------------------------------------------------------ projects

@@ -28,6 +28,11 @@ pub enum Severity {
 pub enum Rule {
     /// A parse error or warning reported by fea-rs.
     Syntax,
+    /// A `;` with no statement to end (`sub a by b;;`, or after a block at the top level).
+    StraySemicolon,
+    /// A `languagesystem` statement after a feature block, which applies only to
+    /// the features after it.
+    LanguagesystemAfterFeature,
     /// A glyph name that isn't in the font's glyph list.
     GlyphNotInFont,
     /// `sub @A by @B` where the classes have different lengths.
@@ -38,10 +43,27 @@ pub enum Rule {
     UndefinedClass,
     /// A class that's defined but never used.
     UnusedClass,
+    /// Two mark classes that share a glyph, attached in the same lookup.
+    MarkClassConflict,
     /// A lookup that's referenced but never defined (project linting only).
     UndefinedLookup,
     /// A standalone lookup that's never referenced, so it never runs.
     UnusedLookup,
+    /// A feature or lookup block with no rules.
+    EmptyBlock,
+    /// A contextual rule that never runs, because an earlier rule in the same
+    /// lookup matches everything it matches.
+    UnreachableRule,
+    /// The same glyph, or ligature sequence, substituted twice in one lookup.
+    DuplicateSubstitution,
+    /// The same glyph pair positioned twice in one lookup; the later rule is ignored.
+    DuplicatePair,
+    /// A positioning lookup called from a substitution rule, or the reverse.
+    WrongLookupType,
+    /// A lookup called on glyphs it has no rule for, so it does nothing there.
+    LookupHasNoEffect,
+    /// A rule that repeats what an earlier rule in the same lookup already does.
+    RedundantRule,
     /// A feature tag that isn't in the OpenType registry.
     UnknownFeatureTag,
     /// An invisible or non-ASCII character outside comments and strings.
@@ -53,15 +75,25 @@ pub enum Rule {
 
 impl Rule {
     /// Every rule, in code order.
-    pub const ALL: [Rule; 11] = [
+    pub const ALL: [Rule; 21] = [
         Rule::Syntax,
+        Rule::StraySemicolon,
+        Rule::LanguagesystemAfterFeature,
         Rule::GlyphNotInFont,
         Rule::ClassLengthMismatch,
         Rule::DuplicateGlyphInClass,
         Rule::UndefinedClass,
         Rule::UnusedClass,
+        Rule::MarkClassConflict,
         Rule::UndefinedLookup,
         Rule::UnusedLookup,
+        Rule::EmptyBlock,
+        Rule::UnreachableRule,
+        Rule::DuplicateSubstitution,
+        Rule::DuplicatePair,
+        Rule::WrongLookupType,
+        Rule::LookupHasNoEffect,
+        Rule::RedundantRule,
         Rule::UnknownFeatureTag,
         Rule::InvisibleCharacter,
         Rule::Project,
@@ -72,13 +104,23 @@ impl Rule {
     pub const fn code(self) -> &'static str {
         match self {
             Rule::Syntax => "E001",
+            Rule::StraySemicolon => "E002",
+            Rule::LanguagesystemAfterFeature => "E003",
             Rule::GlyphNotInFont => "G001",
             Rule::ClassLengthMismatch => "C001",
             Rule::DuplicateGlyphInClass => "C002",
             Rule::UndefinedClass => "C003",
             Rule::UnusedClass => "C004",
+            Rule::MarkClassConflict => "C005",
             Rule::UndefinedLookup => "L001",
             Rule::UnusedLookup => "L002",
+            Rule::EmptyBlock => "L003",
+            Rule::UnreachableRule => "R001",
+            Rule::DuplicateSubstitution => "R002",
+            Rule::DuplicatePair => "R003",
+            Rule::WrongLookupType => "R004",
+            Rule::LookupHasNoEffect => "R005",
+            Rule::RedundantRule => "R006",
             Rule::UnknownFeatureTag => "T001",
             Rule::InvisibleCharacter => "X001",
             Rule::Project => "P001",
@@ -89,13 +131,23 @@ impl Rule {
     pub const fn name(self) -> &'static str {
         match self {
             Rule::Syntax => "syntax",
+            Rule::StraySemicolon => "stray-semicolon",
+            Rule::LanguagesystemAfterFeature => "languagesystem-after-feature",
             Rule::GlyphNotInFont => "glyph-not-in-font",
             Rule::ClassLengthMismatch => "class-length-mismatch",
             Rule::DuplicateGlyphInClass => "duplicate-glyph-in-class",
             Rule::UndefinedClass => "undefined-class",
             Rule::UnusedClass => "unused-class",
+            Rule::MarkClassConflict => "mark-class-conflict",
             Rule::UndefinedLookup => "undefined-lookup",
             Rule::UnusedLookup => "unused-lookup",
+            Rule::EmptyBlock => "empty-block",
+            Rule::UnreachableRule => "unreachable-rule",
+            Rule::DuplicateSubstitution => "duplicate-substitution",
+            Rule::DuplicatePair => "duplicate-pair",
+            Rule::WrongLookupType => "wrong-lookup-type",
+            Rule::LookupHasNoEffect => "lookup-has-no-effect",
+            Rule::RedundantRule => "redundant-rule",
             Rule::UnknownFeatureTag => "unknown-feature-tag",
             Rule::InvisibleCharacter => "invisible-character",
             Rule::Project => "project",
@@ -106,13 +158,25 @@ impl Rule {
     pub const fn summary(self) -> &'static str {
         match self {
             Rule::Syntax => "fea-rs parse error or warning",
+            Rule::StraySemicolon => "';' with no statement to end",
+            Rule::LanguagesystemAfterFeature => "`languagesystem` after a feature block",
             Rule::GlyphNotInFont => "glyph name not in the font's glyph list",
             Rule::ClassLengthMismatch => "`sub @A by @B` with classes of different lengths",
             Rule::DuplicateGlyphInClass => "the same glyph twice in one class",
             Rule::UndefinedClass => "class used but never defined (project linting)",
             Rule::UnusedClass => "class defined but never used",
+            Rule::MarkClassConflict => "mark classes sharing a glyph, attached in one lookup",
             Rule::UndefinedLookup => "lookup referenced but never defined (project linting)",
             Rule::UnusedLookup => "standalone lookup never referenced",
+            Rule::EmptyBlock => "feature or lookup with no rules",
+            Rule::UnreachableRule => "contextual rule an earlier rule always matches first",
+            Rule::DuplicateSubstitution => "the same input substituted twice in one lookup",
+            Rule::DuplicatePair => "the same glyph pair positioned twice in one lookup",
+            Rule::WrongLookupType => {
+                "positioning lookup called from a substitution, or the reverse"
+            }
+            Rule::LookupHasNoEffect => "lookup called on glyphs it has no rule for",
+            Rule::RedundantRule => "rule that repeats what an earlier rule already does",
             Rule::UnknownFeatureTag => "feature tag not in the OpenType registry",
             Rule::InvisibleCharacter => {
                 "invisible or non-ASCII character outside comments and strings"
@@ -126,13 +190,23 @@ impl Rule {
     pub const fn explanation(self) -> &'static str {
         match self {
             Rule::Syntax => include_str!("../rules/E001.md"),
+            Rule::StraySemicolon => include_str!("../rules/E002.md"),
+            Rule::LanguagesystemAfterFeature => include_str!("../rules/E003.md"),
             Rule::GlyphNotInFont => include_str!("../rules/G001.md"),
             Rule::ClassLengthMismatch => include_str!("../rules/C001.md"),
             Rule::DuplicateGlyphInClass => include_str!("../rules/C002.md"),
             Rule::UndefinedClass => include_str!("../rules/C003.md"),
             Rule::UnusedClass => include_str!("../rules/C004.md"),
+            Rule::MarkClassConflict => include_str!("../rules/C005.md"),
             Rule::UndefinedLookup => include_str!("../rules/L001.md"),
             Rule::UnusedLookup => include_str!("../rules/L002.md"),
+            Rule::EmptyBlock => include_str!("../rules/L003.md"),
+            Rule::UnreachableRule => include_str!("../rules/R001.md"),
+            Rule::DuplicateSubstitution => include_str!("../rules/R002.md"),
+            Rule::DuplicatePair => include_str!("../rules/R003.md"),
+            Rule::WrongLookupType => include_str!("../rules/R004.md"),
+            Rule::LookupHasNoEffect => include_str!("../rules/R005.md"),
+            Rule::RedundantRule => include_str!("../rules/R006.md"),
             Rule::UnknownFeatureTag => include_str!("../rules/T001.md"),
             Rule::InvisibleCharacter => include_str!("../rules/X001.md"),
             Rule::Project => include_str!("../rules/P001.md"),

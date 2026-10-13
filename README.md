@@ -74,20 +74,30 @@ Formatting is idempotent: running it again changes nothing.
 | Code | Rule | Severity | Fix |
 |---|---|---|---|
 | E001 | syntax | error | |
+| E002 | stray-semicolon | warning or error | safe |
+| E003 | languagesystem-after-feature | warning | unsafe |
 | G001 | glyph-not-in-font | error | unsafe |
 | C001 | class-length-mismatch | error | |
 | C002 | duplicate-glyph-in-class | warning | safe |
 | C003 | undefined-class | error | |
 | C004 | unused-class | hint | |
+| C005 | mark-class-conflict | error | |
 | L001 | undefined-lookup | error | |
 | L002 | unused-lookup | hint | |
+| L003 | empty-block | warning | |
+| R001 | unreachable-rule | warning | |
+| R002 | duplicate-substitution | error | |
+| R003 | duplicate-pair | warning | safe |
+| R004 | wrong-lookup-type | error | |
+| R005 | lookup-has-no-effect | warning | |
+| R006 | redundant-rule | hint | safe |
 | T001 | unknown-feature-tag | warning | unsafe |
 | X001 | invisible-character | error | safe |
 | P001 | project | error | |
 
 Safe fixes never change what the font does, so `--fix` applies them
-automatically. Unsafe fixes rename a glyph or a feature to a suggested name,
-and are only applied with `--unsafe-fixes`.
+automatically. Unsafe fixes change the font, such as renaming a glyph or a
+feature to a suggested name, and are only applied with `--unsafe-fixes`.
 
 You can choose which rules run by code (`G001`), family (`C`), or name, using
 `--select` and `--ignore`, the configuration file, or a `# noqa` comment on

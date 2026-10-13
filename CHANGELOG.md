@@ -8,7 +8,34 @@ version.
 
 ## Unreleased
 
+### Added
+
+- Rules about what lookups do, checked on the feature code of every Google
+  Fonts family and against HarfBuzz where shaping decides:
+  - `R001` unreachable-rule: a contextual rule an earlier rule in the same
+    lookup always matches first, while doing something else
+  - `R002` duplicate-substitution: a glyph or ligature substituted twice with
+    different results (fea-rs keeps the last, fontTools rejects the file)
+  - `R003` duplicate-pair: a glyph pair positioned twice with different values;
+    the later one is ignored (safe fix: remove it)
+  - `R004` wrong-lookup-type: a positioning lookup called from a substitution,
+    or the reverse
+  - `R005` lookup-has-no-effect: a lookup called on glyphs it has no rule for
+  - `R006` redundant-rule: a rule that repeats what an earlier one does (hint;
+    safe fix: remove it)
+  - `C005` mark-class-conflict: mark classes sharing a glyph in one lookup
+  - `L003` empty-block: a feature or lookup with no rules
+  - `E002` stray-semicolon: a `;` with no statement (safe fix: remove it)
+  - `E003` languagesystem-after-feature (unsafe fix: move it up)
+- `feanor dev compile`: fea-rs's full errors and warnings for a file.
+
 ### Changed
+
+- Linting one file reports each `include` as a `P001` hint to lint the whole
+  project, instead of an `E001` error.
+- Glyph name suggestions skip names that differ in a code point (`uFF10`,
+  `u1F10`), a one-letter part (`f_f`, `f_j`) or only digits (`ss01`, `ss02`),
+  which name different glyphs rather than typos.
 
 - `format`: a glyph class that starts on a new line after `[` keeps the
   author's line breaks, so rows that group glyphs, or that line up with a
