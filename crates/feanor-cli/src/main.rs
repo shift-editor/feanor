@@ -126,6 +126,7 @@ pub(crate) enum OutputFormat {
 }
 
 fn main() -> ExitCode {
+    restore_sigpipe();
     let cli = Cli::parse();
     let result = match cli.command {
         Command::Fmt {
@@ -156,6 +157,17 @@ fn main() -> ExitCode {
             eprintln!("error: {message}");
             ExitCode::from(2)
         }
+    }
+}
+
+/// Exit quietly when the reader of our output goes away (`feanor lint | head`),
+/// as command-line tools do, instead of panicking on the broken pipe.
+fn restore_sigpipe() {
+    #[cfg(unix)]
+    // SAFETY: called first thing in main, before any other thread exists, to
+    // restore the default disposition the Rust runtime replaced at startup.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
 }
 
