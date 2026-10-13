@@ -18,13 +18,12 @@ and language servers.
 
 ## Installation
 
-Feanor isn't on crates.io yet. Install the command-line tool from source:
-
 ```console
-cargo install --git https://github.com/shift-editor/feanor feanor-cli
+cargo install feanor-cli
 ```
 
-This installs the `feanor` binary. Rust 1.89 or later is required.
+This installs the `feanor` binary. Rust 1.89 or later is required. To use
+Feanor as a library, add the [`feanor`](https://crates.io/crates/feanor) crate.
 
 ## Usage
 
@@ -49,7 +48,7 @@ unformatted files, and 2 when a file can't be read.
 ### Continuous integration
 
 ```yaml
-- run: cargo install --git https://github.com/shift-editor/feanor feanor-cli
+- run: cargo install feanor-cli
 - run: feanor check sources/features.fea --format github
 ```
 
