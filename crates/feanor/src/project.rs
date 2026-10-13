@@ -125,13 +125,13 @@ struct Segment {
 /// Many feature files assembled into one document, with a map back to each file.
 ///
 /// ```no_run
-/// use fea_tools::{LintOptions, Project};
+/// use feanor::{LintOptions, Project};
 ///
 /// let project = Project::from_root("sources/features.fea".as_ref(), &["ITALIC".to_string()])?;
 /// for found in project.lint(&LintOptions::default()) {
 ///     println!("{}: {}", project.files()[found.file].display(), found.diagnostic.message);
 /// }
-/// # Ok::<(), fea_tools::ProjectError>(())
+/// # Ok::<(), feanor::ProjectError>(())
 /// ```
 #[derive(Debug, Default)]
 pub struct Project {

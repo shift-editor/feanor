@@ -122,7 +122,7 @@ impl Rule {
     }
 
     /// The rule's documentation in Markdown: what it reports, why it matters,
-    /// an example, and what its fix does. `fea rule CODE` prints this.
+    /// an example, and what its fix does. `feanor rule CODE` prints this.
     pub const fn explanation(self) -> &'static str {
         match self {
             Rule::Syntax => include_str!("../rules/E001.md"),

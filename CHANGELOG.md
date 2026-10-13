@@ -14,5 +14,5 @@ First release.
 - `lint`: rules E001, G001, C001–C004, L001, L002, T001, X001, P001
 - Projects: FEA `include()`, preprocessor `#include` / `#ifdef`, Glyphs-style manifests
 - Incremental linting for editors
-- `fea.toml` settings, `# noqa` suppressions, safe and unsafe fixes
-- `fea` command: `fmt`, `lint`, `project`, `check`, `rule`
+- `feanor.toml` settings, `# noqa` suppressions, safe and unsafe fixes
+- `feanor` command: `fmt`, `lint`, `project`, `check`, `rule`

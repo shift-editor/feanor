@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::io::IsTerminal;
 
 use anstyle::{AnsiColor, Style};
-use fea_tools::{Applicability, Diagnostic, LineIndex, Rule, Severity};
+use feanor::{Applicability, Diagnostic, LineIndex, Rule, Severity};
 use similar::{ChangeTag, TextDiff};
 
 use crate::OutputFormat;

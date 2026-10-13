@@ -10,13 +10,13 @@
 //! - [`Project`] lints many files as one document: FEA `include()`,
 //!   C-preprocessor `#include` / `#ifdef`, and Glyphs-style sections.
 //! - [`Incremental`] keeps a document linted as it's edited.
-//! - [`Config`] reads `fea.toml`.
+//! - [`Config`] reads `feanor.toml`.
 //!
 //! Every range is a byte range into the text given; [`LineIndex`] converts to
 //! the line and UTF-16 column that editors and the Language Server Protocol use.
 //!
 //! ```
-//! use fea_tools::{format, lint, FormatOptions, GlyphNames, LintOptions, Rule};
+//! use feanor::{format, lint, FormatOptions, GlyphNames, LintOptions, Rule};
 //!
 //! let source = "feature smcp {\n    sub a by a.sc;\n    sub b by bsc;\n} smcp;\n";
 //! assert_eq!(format(source, &FormatOptions::default()).text, source);

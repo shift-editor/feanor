@@ -35,7 +35,7 @@ pub enum Indent {
 /// How [`format()`] lays code out.
 ///
 /// ```
-/// use fea_tools::{format, FormatOptions, Indent};
+/// use feanor::{format, FormatOptions, Indent};
 ///
 /// let mut options = FormatOptions::default();
 /// options.indent = Indent::Spaces(2);
@@ -74,7 +74,7 @@ pub struct Formatted {
     /// inside an untouched region without one).
     pub text: String,
     /// Byte ranges of the input left exactly as written: top-level items that
-    /// don't parse, and `# fea-fmt: off` regions.
+    /// don't parse, and `# fmt: off` regions.
     pub untouched: Vec<Range<usize>>,
     /// The input was formatted as a feature body (the inside of a `feature`
     /// block), because it only parses that way.
@@ -90,7 +90,7 @@ pub struct Formatted {
 /// again returns it unchanged.
 ///
 /// ```
-/// use fea_tools::{format, FormatOptions};
+/// use feanor::{format, FormatOptions};
 ///
 /// let out = format("@lc=[a   b c];\nfeature liga {sub f i by f_i;} liga;\n", &FormatOptions::default());
 /// assert_eq!(out.text, "@lc = [a b c];\nfeature liga { sub f i by f_i; } liga;\n");
@@ -220,7 +220,7 @@ struct Flattener<'a> {
     off: Option<OffRegion<'a>>,
 }
 
-/// An open `# fea-fmt: off` region: elements are buffered until `# fea-fmt: on`.
+/// An open `# fmt: off` region: elements are buffered until `# fmt: on`.
 struct OffRegion<'a> {
     start: usize,
     nl_before: usize,
@@ -231,8 +231,8 @@ struct OffRegion<'a> {
 fn directive(comment: &str) -> Option<bool> {
     let body = comment.trim_start_matches('#').trim();
     match body {
-        "fea-fmt: off" => Some(false),
-        "fea-fmt: on" => Some(true),
+        "fmt: off" => Some(false),
+        "fmt: on" => Some(true),
         _ => None,
     }
 }

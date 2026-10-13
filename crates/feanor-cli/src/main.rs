@@ -1,4 +1,4 @@
-//! `fea`: format and lint OpenType feature files.
+//! `feanor`: format and lint OpenType feature files.
 
 mod dev;
 mod inputs;
@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use fea_tools::{
+use feanor::{
     Applicability, BuildConfig, Config, Diagnostic, Rule, Severity, apply_fixes, apply_noqa,
     configurations, format, lint,
 };
@@ -19,9 +19,9 @@ use crate::output::{print_diagnostic, print_diff, print_statistics};
 
 /// Format and lint OpenType feature files (.fea).
 ///
-/// Settings come from the nearest fea.toml at or above each file.
+/// Settings come from the nearest feanor.toml at or above each file.
 #[derive(Parser)]
-#[command(name = "fea", version, about, long_about = None)]
+#[command(name = "feanor", version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -73,7 +73,7 @@ enum Command {
         #[command(flatten)]
         lint: LintArgs,
     },
-    /// List the rules, or explain one (`fea rule G001`).
+    /// List the rules, or explain one (`feanor rule G001`).
     Rule { code: Option<String> },
     /// Development and test-harness commands.
     #[command(hide = true, subcommand)]
@@ -82,13 +82,13 @@ enum Command {
 
 #[derive(Args, Clone)]
 struct StyleArgs {
-    /// Line width (overrides fea.toml).
+    /// Line width (overrides feanor.toml).
     #[arg(long)]
     line_width: Option<usize>,
-    /// Indent: a number of spaces, `tab`, or `auto` (overrides fea.toml).
+    /// Indent: a number of spaces, `tab`, or `auto` (overrides feanor.toml).
     #[arg(long)]
     indent: Option<String>,
-    /// Ignore fea.toml.
+    /// Ignore feanor.toml.
     #[arg(long)]
     no_config: bool,
 }
@@ -104,7 +104,7 @@ struct LintArgs {
     /// Rules to report: codes, families (C) or names, comma-separated.
     #[arg(long, value_delimiter = ',')]
     select: Vec<String>,
-    /// Rules to skip, added to fea.toml's.
+    /// Rules to skip, added to feanor.toml's.
     #[arg(long, value_delimiter = ',')]
     ignore: Vec<String>,
     #[arg(long, value_enum, default_value_t = OutputFormat::Human)]
@@ -112,7 +112,7 @@ struct LintArgs {
     /// Print counts per rule instead of each diagnostic.
     #[arg(long)]
     statistics: bool,
-    /// Ignore fea.toml.
+    /// Ignore feanor.toml.
     #[arg(long)]
     no_config: bool,
 }
@@ -175,7 +175,7 @@ fn config_for(path: &std::path::Path, no_config: bool) -> Result<Config, String>
     Config::discover(path).map_err(|e| e.to_string())
 }
 
-fn style_options(config: &Config, style: &StyleArgs) -> Result<fea_tools::FormatOptions, String> {
+fn style_options(config: &Config, style: &StyleArgs) -> Result<feanor::FormatOptions, String> {
     let mut options = config.format_options();
     if let Some(w) = style.line_width {
         options.line_width = w;
@@ -183,9 +183,9 @@ fn style_options(config: &Config, style: &StyleArgs) -> Result<fea_tools::Format
     if let Some(i) = &style.indent {
         options.indent =
             match i.as_str() {
-                "tab" => fea_tools::Indent::Tab,
-                "auto" => fea_tools::Indent::Auto,
-                n => fea_tools::Indent::Spaces(n.parse().map_err(|_| {
+                "tab" => feanor::Indent::Tab,
+                "auto" => feanor::Indent::Auto,
+                n => feanor::Indent::Spaces(n.parse().map_err(|_| {
                     format!("--indent: expected a number, `tab` or `auto`, got `{n}`")
                 })?),
             };
@@ -249,8 +249,8 @@ fn run_lint(
         let glyph_path = args.glyphs.clone().or(config.glyphs.clone());
         let glyphs = glyph_path.as_deref().map(load_glyphs).transpose()?;
         let options = match &glyphs {
-            Some(g) => fea_tools::LintOptions::default().with_glyphs(g),
-            None => fea_tools::LintOptions::default(),
+            Some(g) => feanor::LintOptions::default().with_glyphs(g),
+            None => feanor::LintOptions::default(),
         };
         let mut diags = lint(&text, &options);
         let mut selection = config.selection_for(path);
@@ -331,19 +331,19 @@ fn report(
 fn project_inputs(
     root: &std::path::Path,
     args: &LintArgs,
-) -> Result<(Config, Option<fea_tools::GlyphNames>), String> {
+) -> Result<(Config, Option<feanor::GlyphNames>), String> {
     let config = config_for(root, args.no_config)?;
     let glyph_path = args.glyphs.clone().or(config.glyphs.clone());
     let glyphs = glyph_path.as_deref().map(load_glyphs).transpose()?;
     Ok((config, glyphs))
 }
 
-fn load_project(root: &std::path::Path, defines: &[String]) -> Result<fea_tools::Project, String> {
+fn load_project(root: &std::path::Path, defines: &[String]) -> Result<feanor::Project, String> {
     let manifest = root.extension().is_some_and(|e| e == "txt");
     let loaded = if manifest {
-        fea_tools::Project::from_manifest(root)
+        feanor::Project::from_manifest(root)
     } else {
-        fea_tools::Project::from_root(root, defines)
+        feanor::Project::from_root(root, defines)
     };
     loaded.map_err(|e| e.to_string())
 }
@@ -355,7 +355,7 @@ fn lint_builds(
     root: &std::path::Path,
     args: &LintArgs,
     config: &Config,
-    glyphs: Option<&fea_tools::GlyphNames>,
+    glyphs: Option<&feanor::GlyphNames>,
     all_builds: bool,
 ) -> Result<Vec<(String, String, Vec<Diagnostic>)>, String> {
     let mut defines = config.defines.clone();
@@ -366,8 +366,8 @@ fn lint_builds(
         vec![BuildConfig { defines }]
     };
     let options = match glyphs {
-        Some(g) => fea_tools::LintOptions::default().with_glyphs(g),
-        None => fea_tools::LintOptions::default(),
+        Some(g) => feanor::LintOptions::default().with_glyphs(g),
+        None => feanor::LintOptions::default(),
     };
 
     struct Found {
@@ -474,7 +474,7 @@ fn run_check(root: &std::path::Path, args: &LintArgs) -> Result<ExitCode, String
             let shown = path.strip_prefix(base).unwrap_or(path).display();
             match args.format {
                 OutputFormat::Github => println!(
-                    "::warning file={shown},title=fea fmt::file is not formatted (run `fea fmt --write`)"
+                    "::warning file={shown},title=feanor fmt::file is not formatted (run `feanor fmt --write`)"
                 ),
                 _ => println!("not formatted: {shown}"),
             }
@@ -497,7 +497,7 @@ fn run_rule(code: Option<&str>) -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     };
     let rule = Rule::from_code_or_name(code)
-        .ok_or_else(|| format!("no rule `{code}` (see `fea rule`)"))?;
+        .ok_or_else(|| format!("no rule `{code}` (see `feanor rule`)"))?;
     print!("{}", rule.explanation());
     Ok(ExitCode::SUCCESS)
 }

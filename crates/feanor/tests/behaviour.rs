@@ -3,8 +3,8 @@
 
 use std::path::Path;
 
-use fea_tools::internal::{first_token_mismatch, lint_whole_document};
-use fea_tools::{
+use feanor::internal::{first_token_mismatch, lint_whole_document};
+use feanor::{
     Applicability, Diagnostic, FormatOptions, GlyphNames, Incremental, Indent, LintOptions,
     Project, Rule, apply_noqa, detect_indent, format, lint,
 };
@@ -89,7 +89,7 @@ fn wraps_a_long_rule_before_by() {
 
 #[test]
 fn leaves_fea_fmt_off_regions_exactly_as_written() {
-    let src = "feature ss05 {\n    # fea-fmt: off\n    sub A      by A.circled;\n    # fea-fmt: on\n    sub B    by B.circled;\n} ss05;\n";
+    let src = "feature ss05 {\n    # fmt: off\n    sub A      by A.circled;\n    # fmt: on\n    sub B    by B.circled;\n} ss05;\n";
     let out = fmt(src);
     assert!(out.contains("    sub A      by A.circled;\n"));
     assert!(out.contains("    sub B by B.circled;\n"));
@@ -325,7 +325,7 @@ fn incremental_linting_matches_a_full_lint_after_every_edit() {
 
 #[test]
 fn projects_follow_includes_and_ifdefs_and_map_back_to_files() {
-    let dir = std::env::temp_dir().join(format!("fea-tools-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("feanor-test-{}", std::process::id()));
     std::fs::create_dir_all(dir.join("features")).unwrap();
     std::fs::write(
         dir.join("main.fea"),
@@ -369,7 +369,7 @@ fn projects_follow_includes_and_ifdefs_and_map_back_to_files() {
 
 #[test]
 fn a_missing_include_is_reported_where_it_is_written() {
-    let dir = std::env::temp_dir().join(format!("fea-tools-missing-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("feanor-missing-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(
         dir.join("main.fea"),

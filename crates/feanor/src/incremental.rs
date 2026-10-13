@@ -31,7 +31,7 @@ struct Chunk {
 /// A document that stays linted as it's edited.
 ///
 /// ```
-/// use fea_tools::{Incremental, LintOptions, Rule};
+/// use feanor::{Incremental, LintOptions, Rule};
 ///
 /// let mut doc = Incremental::new("@a = [x y];\n".into(), LintOptions::default());
 /// doc.edit(9..9, " x"); // now "@a = [x y x];"

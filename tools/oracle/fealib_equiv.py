@@ -1,5 +1,5 @@
 """Formatter equivalence oracle, independent of fea-rs: compile each file before
-and after `fea fmt` with fontTools feaLib and compare the compiled layout tables.
+and after `feanor fmt` with fontTools feaLib and compare the compiled layout tables.
 
 Usage: fealib_equiv.py FEA_BINARY LIST_FILE OUT_JSON
 LIST_FILE has one entry per line: `path` or `path<TAB>glyph-list.txt`.

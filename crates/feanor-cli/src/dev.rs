@@ -1,4 +1,4 @@
-//! Hidden `fea dev …` commands used by the test harnesses in `tools/` and for
+//! Hidden `feanor dev …` commands used by the test harnesses in `tools/` and for
 //! benchmarking. Not part of the supported interface.
 
 use std::path::{Path, PathBuf};
@@ -8,10 +8,10 @@ use std::time::Instant;
 use clap::Subcommand;
 use fea_rs::compile::{Compiler, NopFeatureProvider, NopVariationInfo};
 use fea_rs::{GlyphIdent, GlyphMap, Node, NodeOrToken};
-use fea_tools::internal::{
+use feanor::internal::{
     first_token_mismatch, glyph_map_with_file_names, lint_whole_document, parse, parse_glyph_map,
 };
-use fea_tools::{Diagnostic, FormatOptions, Incremental, Indent, LintOptions, format};
+use feanor::{Diagnostic, FormatOptions, Incremental, Indent, LintOptions, format};
 
 use crate::inputs::{load_glyphs, read_input};
 

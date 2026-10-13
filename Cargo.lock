@@ -204,19 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fea-cli"
-version = "0.1.0"
-dependencies = [
- "anstyle",
- "clap",
- "fea-rs",
- "fea-tools",
- "plist",
- "serde_json",
- "similar",
-]
-
-[[package]]
 name = "fea-rs"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -234,13 +221,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "fea-tools"
+name = "feanor"
 version = "0.1.0"
 dependencies = [
  "fea-rs",
  "serde",
  "thiserror",
  "toml_edit",
+]
+
+[[package]]
+name = "feanor-cli"
+version = "0.1.0"
+dependencies = [
+ "anstyle",
+ "clap",
+ "fea-rs",
+ "feanor",
+ "plist",
+ "serde_json",
+ "similar",
 ]
 
 [[package]]

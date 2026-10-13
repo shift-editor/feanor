@@ -1,4 +1,4 @@
-# fea-tools
+# feanor
 
 A formatter and linter for OpenType feature files (`.fea`), built on
 [fea-rs](https://github.com/googlefonts/fontc/tree/main/fea-rs), the feature
@@ -6,13 +6,13 @@ compiler in Google's [fontc](https://github.com/googlefonts/fontc).
 
 | Crate | What |
 |---|---|
-| [`fea-tools`](crates/fea-tools) | The library: `format`, `lint`, projects, incremental linting, `fea.toml` |
-| [`fea-cli`](crates/fea-cli) | The `fea` command |
+| [`feanor`](crates/feanor) | The library: `format`, `lint`, projects, incremental linting, `feanor.toml` |
+| [`feanor-cli`](crates/feanor-cli) | The `feanor` command |
 
 ```console
-$ fea fmt --write features.fea           # format in place
-$ fea lint features.fea --glyphs Font.ufo
-$ fea check sources/features.fea --format github   # CI: formatting + lint, PR annotations
+$ feanor fmt --write features.fea           # format in place
+$ feanor lint features.fea --glyphs Font.ufo
+$ feanor check sources/features.fea --format github   # CI: formatting + lint, PR annotations
 ```
 
 ## What it does
@@ -20,10 +20,10 @@ $ fea check sources/features.fea --format github   # CI: formatting + lint, PR a
 - **Formats layout only.** Spacing, indentation, line breaks, blank lines.
   Every token and comment comes out with the same text in the same order, so
   the compiled font can't change. Glyph classes are packed to the line width;
-  columns the author aligned stay aligned; `# fea-fmt: off` leaves a region
+  columns the author aligned stay aligned; `# fmt: off` leaves a region
   alone; the file's own indent and line endings are kept.
 - **Lints** with rules that each have a short code, a severity and a page of
-  documentation (`fea rule G001`):
+  documentation (`feanor rule G001`):
 
   | Code | Rule | Severity | Fix |
   |---|---|---|---|
@@ -39,7 +39,7 @@ $ fea check sources/features.fea --format github   # CI: formatting + lint, PR a
   | X001 | invisible-character | error | safe |
   | P001 | project | error | |
 
-  Rules can be selected and ignored by code, family or name, in `fea.toml`,
+  Rules can be selected and ignored by code, family or name, in `feanor.toml`,
   per file, or with `# noqa` comments, as in [Ruff](https://docs.astral.sh/ruff/).
 - **Understands projects**: FEA `include()`, C-preprocessor `#include` /
   `#ifdef` (and lints every `#ifdef` build), and Glyphs-style sections.

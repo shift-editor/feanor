@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use fea_tools::GlyphNames;
+use feanor::GlyphNames;
 
 pub(crate) struct Input {
     pub text: String,

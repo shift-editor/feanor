@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fea-tools", "crates/fea-cli"]
+members = ["crates/feanor", "crates/feanor-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,9 +10,9 @@ rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 authors = ["Kostya Farber"]
 # TODO before publishing: the public repository URL
-# repository = "https://github.com/OWNER/fea-tools"
+# repository = "https://github.com/OWNER/feanor"
 keywords = ["opentype", "fonts", "fea", "linter", "formatter"]
 
 [workspace.dependencies]
 fea-rs = "1.0"
-fea-tools = { path = "crates/fea-tools", version = "0.1.0" }
+feanor = { path = "crates/feanor", version = "0.1.0" }

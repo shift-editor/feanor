@@ -1,5 +1,5 @@
 [package]
-name = "fea-tools"
+name = "feanor"
 description = "Formatter and linter for OpenType feature files (.fea), built on fea-rs"
 version.workspace = true
 edition.workspace = true

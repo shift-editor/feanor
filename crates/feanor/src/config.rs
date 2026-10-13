@@ -1,4 +1,4 @@
-//! `fea.toml`: settings for formatting and linting.
+//! `feanor.toml`: settings for formatting and linting.
 //!
 //! ```toml
 //! line-width = 100
@@ -16,7 +16,7 @@
 //! "features/*.fea" = ["T001"]
 //! ```
 //!
-//! Paths are relative to the directory holding `fea.toml`.
+//! Paths are relative to the directory holding `feanor.toml`.
 
 use std::path::{Path, PathBuf};
 
@@ -26,13 +26,13 @@ use crate::diagnostic::Selection;
 use crate::fmt::{FormatOptions, Indent};
 
 /// The settings file's name.
-pub const FILE_NAME: &str = "fea.toml";
+pub const FILE_NAME: &str = "feanor.toml";
 
-/// Settings from a `fea.toml`, or the defaults.
+/// Settings from a `feanor.toml`, or the defaults.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Config {
-    /// Directory of the `fea.toml`; relative paths in it resolve from here.
+    /// Directory of the `feanor.toml`; relative paths in it resolve from here.
     pub root: PathBuf,
     /// `line-width`; see [`FormatOptions::line_width`].
     pub line_width: usize,
@@ -69,14 +69,14 @@ impl Default for Config {
     }
 }
 
-/// A `fea.toml` couldn't be used.
+/// A `feanor.toml` couldn't be used.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum ConfigError {
     /// The file couldn't be read.
     #[error("couldn't read {}: {source}", path.display())]
     Read {
-        /// The `fea.toml`.
+        /// The `feanor.toml`.
         path: PathBuf,
         /// Why reading failed.
         #[source]
@@ -85,7 +85,7 @@ pub enum ConfigError {
     /// The file isn't valid TOML.
     #[error("{} isn't valid TOML: {source}", path.display())]
     Syntax {
-        /// The `fea.toml`.
+        /// The `feanor.toml`.
         path: PathBuf,
         /// Where and why parsing failed.
         #[source]
@@ -94,7 +94,7 @@ pub enum ConfigError {
     /// A setting has the wrong type or value.
     #[error("{}: {source}", path.display())]
     Setting {
-        /// The `fea.toml`.
+        /// The `feanor.toml`.
         path: PathBuf,
         /// Which setting, and what it should be.
         #[source]
@@ -106,7 +106,7 @@ pub enum ConfigError {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 #[error("`{key}` must be {expected}")]
 pub struct SettingError {
-    /// The setting's dotted name, as written in `fea.toml` (`lint.ignore`).
+    /// The setting's dotted name, as written in `feanor.toml` (`lint.ignore`).
     pub key: &'static str,
     /// What the value should have been, in words.
     pub expected: &'static str,
@@ -129,12 +129,12 @@ pub enum ParseError {
 }
 
 impl Config {
-    /// The nearest `fea.toml` at or above `start` (a file or a directory), or
+    /// The nearest `feanor.toml` at or above `start` (a file or a directory), or
     /// the defaults when there is none.
     ///
     /// # Errors
     ///
-    /// A [`ConfigError`] when a `fea.toml` is found but can't be read or used.
+    /// A [`ConfigError`] when a `feanor.toml` is found but can't be read or used.
     pub fn discover(start: &Path) -> Result<Config, ConfigError> {
         let start = start.canonicalize().unwrap_or_else(|_| start.to_path_buf());
         let mut dir = if start.is_dir() {
@@ -152,7 +152,7 @@ impl Config {
         Ok(Config::default())
     }
 
-    /// Read the `fea.toml` at `path`.
+    /// Read the `feanor.toml` at `path`.
     ///
     /// # Errors
     ///
@@ -179,7 +179,7 @@ impl Config {
         Ok(config)
     }
 
-    /// Parse `fea.toml` text. Paths stay as written ([`Config::load`] resolves them).
+    /// Parse `feanor.toml` text. Paths stay as written ([`Config::load`] resolves them).
     ///
     /// # Errors
     ///

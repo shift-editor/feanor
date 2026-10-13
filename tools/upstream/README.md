@@ -1,4 +1,4 @@
-# Possible fea-rs issues found while building fea-tools
+# Possible fea-rs issues found while building feanor
 
 Not reported upstream. Each has a minimal input here.
 
@@ -32,13 +32,13 @@ sub lam-ar.init' lookup LamAlef alef-ar.fina' lookup LamAlef;
 reports "unexpected tokens in rewriter, please file a bug?". Without a glyph
 map, `lam-ar.init` is a `GlyphNameOrRange` token, which the contextual-rule
 rewriter doesn't expect. With a glyph map containing the names it parses.
-The message itself asks for a report. fea-tools works around it by building a
+The message itself asks for a report. feanor works around it by building a
 parse-only glyph map from every hyphenated word in the text.
 
 ## Other observations (probably by design; worth confirming)
 
 - Token positions (`Token::range`, `Node::range`) are only filled in when a
-  parse includes more than one file; single-file parses report 0. fea-tools
+  parse includes more than one file; single-file parses report 0. feanor
   tracks offsets itself.
 - Includes are spliced into the tree in place of the `include` statement, so a
   single file with includes can't be reproduced from its tree. An option to

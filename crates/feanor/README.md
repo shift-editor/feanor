@@ -1,11 +1,11 @@
-# fea-tools
+# feanor
 
 A formatter and linter for OpenType feature files (`.fea`), built on
 [fea-rs](https://docs.rs/fea-rs)'s lossless syntax tree. For the `fea`
-command, see [`fea-cli`](https://crates.io/crates/fea-cli).
+command, see [`feanor-cli`](https://crates.io/crates/feanor-cli).
 
 ```rust
-use fea_tools::{format, lint, FormatOptions, GlyphNames, LintOptions, Rule};
+use feanor::{format, lint, FormatOptions, GlyphNames, LintOptions, Rule};
 
 let source = "feature smcp {\n    sub a by a.sc;\n    sub b by bsc;\n} smcp;\n";
 
@@ -33,8 +33,8 @@ from `Rule::explanation`.
 
 Licensed under either of Apache-2.0 or MIT, at your option.
 
-[`format`]: https://docs.rs/fea-tools/latest/fea_tools/fn.format.html
-[`lint`]: https://docs.rs/fea-tools/latest/fea_tools/fn.lint.html
-[`Project`]: https://docs.rs/fea-tools/latest/fea_tools/struct.Project.html
-[`Incremental`]: https://docs.rs/fea-tools/latest/fea_tools/struct.Incremental.html
-[`LineIndex`]: https://docs.rs/fea-tools/latest/fea_tools/struct.LineIndex.html
+[`format`]: https://docs.rs/feanor/latest/feanor/fn.format.html
+[`lint`]: https://docs.rs/feanor/latest/feanor/fn.lint.html
+[`Project`]: https://docs.rs/feanor/latest/feanor/struct.Project.html
+[`Incremental`]: https://docs.rs/feanor/latest/feanor/struct.Incremental.html
+[`LineIndex`]: https://docs.rs/feanor/latest/feanor/struct.LineIndex.html

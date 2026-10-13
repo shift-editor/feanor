@@ -17,7 +17,7 @@ use crate::fmt::{parse_glyph_map, parse_with_diagnostics};
 /// What the linter knows besides the text.
 ///
 /// ```
-/// use fea_tools::{GlyphNames, LintOptions};
+/// use feanor::{GlyphNames, LintOptions};
 ///
 /// let glyphs: GlyphNames = ["a", "b"].into_iter().collect();
 /// let options = LintOptions::default().with_glyphs(&glyphs).whole_project(true);
@@ -124,7 +124,7 @@ fn index<'a>(root: &'a Node) -> Vec<Item<'a>> {
 /// with [`Selection`](crate::Selection) and [`apply_noqa`](crate::apply_noqa).
 ///
 /// ```
-/// use fea_tools::{lint, LintOptions, Rule};
+/// use feanor::{lint, LintOptions, Rule};
 ///
 /// let source = "@lc = [a b a];\nfeature liga { sub @lc by f_i; } liga;\n";
 /// let diagnostics = lint(source, &LintOptions::default());

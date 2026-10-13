@@ -5,7 +5,7 @@ use std::collections::HashSet;
 /// A set of glyph names. Order doesn't matter: no rule here depends on glyph IDs.
 ///
 /// ```
-/// use fea_tools::GlyphNames;
+/// use feanor::GlyphNames;
 ///
 /// let glyphs: GlyphNames = ["a", "b", "a.sc"].into_iter().collect();
 /// assert!(glyphs.contains("a.sc"));
