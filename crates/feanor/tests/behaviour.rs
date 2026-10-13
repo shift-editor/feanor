@@ -661,6 +661,17 @@ fn a_longer_inline_ligature_after_a_shorter_one_still_forms() {
 }
 
 #[test]
+fn a_class_means_its_definition_where_it_is_used() {
+    // Noto: each lookup redefines @input1; both compilers use the definition
+    // before the rule, so ALT applies to virama here, and isn't "doing nothing"
+    let src = "lookup ALT { sub virama by virama.alt; } ALT;\nlookup ONE { @input1 = [ka]; sub @input1 by ka.alt; } ONE;\nlookup TWO { @input1 = [virama]; sub x @input1' lookup ALT; } TWO;\nfeature akhn { lookup ONE; lookup TWO; } akhn;\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
+    // and C001 compares the classes as defined where the rule is
+    let src = "@A = [a b c];\n@B = [x y];\nfeature smcp { sub @A by @B; } smcp;\n@A = [a b];\n";
+    assert_eq!(codes(src), ["C001"]);
+}
+
+#[test]
 fn a_narrower_rule_that_does_the_same_is_redundant() {
     // Cambay: a longer backtrack with the same replacement never runs, and loses nothing
     let src = "feature calt {\n    sub b c a' by a.alt;\n    sub x b c a' by a.alt;\n} calt;\n";
@@ -706,6 +717,23 @@ fn judges_only_lookups_that_see_the_glyphs_the_rule_names() {
     // a second lookup at one position sees the first one's result
     let src = "lookup A { sub e by e.alt; } A;\nlookup B { sub e.alt by e.alt2; } B;\nfeature calt {\n    sub e' lookup A lookup B t;\n} calt;\n";
     assert!(codes(src).is_empty());
+}
+
+#[test]
+fn a_lone_semicolon_in_a_table_is_stray() {
+    // Moderustic: fea-rs rejects it with "Expected Attach, ... found ;"; fontTools accepts it
+    let src = "table GDEF {\n    GlyphClassDef [a], , , ;\n;\n} GDEF;\n";
+    let diags = lint(src, &plain());
+    assert_eq!(rules(&diags), [Rule::StraySemicolon]);
+    // a missing operand isn't a stray semicolon
+    assert_eq!(codes("feature liga { sub f i by ; } liga;\n"), ["E001"]);
+}
+
+#[test]
+fn an_error_inside_a_multibyte_character_doesnt_crash() {
+    // Galada with a planted no-break space: fea-rs points into the middle of it
+    let src = "markClass acutecomb <anchor 0 0> @M;\nfeature mark {\n    pos base [a]\u{a0}<anchor 1 2> mark @M;\n} mark;\n";
+    assert!(rules(&lint(src, &plain())).contains(&Rule::InvisibleCharacter));
 }
 
 #[test]

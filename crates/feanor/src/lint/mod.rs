@@ -276,9 +276,17 @@ fn parse_diagnostic(
     range: Range<usize>,
     source: &str,
 ) -> Diagnostic {
-    let stray_semicolon = &source[range.clone()] == ";"
+    // fea-rs may point inside a multi-byte character, so never slice blindly
+    let at_range = source.get(range.clone()).unwrap_or_default();
+    // a `;` after nothing but `;`, `{` or `}` ends no statement, however fea-rs words it
+    let after_nothing = source
+        .get(..range.start)
+        .and_then(|before| before.trim_end().chars().last())
+        .is_some_and(|c| matches!(c, ';' | '{' | '}'));
+    let stray_semicolon = at_range == ";"
         && (text == "';' should only follow a statement"
-            || text == "Unexpected token ';', expected global keyword.");
+            || text == "Unexpected token ';', expected global keyword."
+            || (after_nothing && text.ends_with("found ;")));
     if stray_semicolon {
         let mut d = Diagnostic::new(
             Rule::StraySemicolon,
@@ -298,7 +306,11 @@ fn parse_diagnostic(
     }
     // linting one file doesn't follow includes; that's not an error in the file
     if text.ends_with("'includes are not followed'") {
-        let path = &source[range.clone()];
+        let path = if at_range.is_empty() {
+            "a file"
+        } else {
+            at_range
+        };
         return Diagnostic::new(
             Rule::Project,
             Severity::Hint,
@@ -602,27 +614,52 @@ fn class_facts(items: &[Item], source: &str, font: Option<&GlyphNames>, facts: &
     }
 }
 
-/// Every class definition by name; the last one wins, as in a single pass over the document.
-fn class_table<'f>(
-    pieces: impl Iterator<Item = (usize, &'f Facts)>,
-) -> HashMap<&'f str, &'f Option<Vec<Member>>> {
-    let mut table = HashMap::new();
-    for (_, f) in pieces {
-        for (name, _, value) in &f.class_defs {
-            table.insert(name.as_str(), value);
+/// Class definitions by name, in document order. A class used in a rule means
+/// the definition in effect where the rule is written: the last one before it.
+/// fea-rs and fontTools both compile it that way, and generated feature code
+/// often reuses a name (`@input1`) with different glyphs in each lookup.
+struct ClassDefs<'f> {
+    by_name: HashMap<&'f str, Vec<ClassInEffect<'f>>>,
+}
+
+/// Where a class is defined, and its members.
+type ClassInEffect<'f> = (usize, &'f Option<Vec<Member>>);
+
+impl<'f> ClassDefs<'f> {
+    fn new(pieces: impl Iterator<Item = (usize, &'f Facts)>) -> ClassDefs<'f> {
+        let mut by_name: HashMap<&'f str, Vec<ClassInEffect<'f>>> = HashMap::new();
+        for (at, f) in pieces {
+            for (name, range, value) in &f.class_defs {
+                by_name
+                    .entry(name)
+                    .or_default()
+                    .push((range.start + at, value));
+            }
         }
+        for defs in by_name.values_mut() {
+            defs.sort_by_key(|(position, _)| *position);
+        }
+        ClassDefs { by_name }
     }
-    table
+
+    /// The definition of `name` in effect at byte `at`: where it is, and its members.
+    fn resolve(&self, name: &str, at: usize) -> Option<ClassInEffect<'f>> {
+        let defs = self.by_name.get(name)?;
+        let before = defs.partition_point(|(position, _)| *position < at);
+        defs.get(before.checked_sub(1)?).copied()
+    }
 }
 
 fn class_length_mismatch<'f>(
     pieces: impl Iterator<Item = (usize, &'f Facts)> + Clone,
     out: &mut Vec<Diagnostic>,
 ) {
-    let table = class_table(pieces.clone());
+    let classes = ClassDefs::new(pieces.clone());
+    /// `members` written at byte `at`, with classes expanded as defined there.
     fn expand(
         members: &[Member],
-        table: &HashMap<&str, &Option<Vec<Member>>>,
+        classes: &ClassDefs,
+        at: usize,
         depth: usize,
     ) -> Option<Vec<String>> {
         if depth > 32 {
@@ -633,7 +670,8 @@ fn class_length_mismatch<'f>(
             match m {
                 Member::Glyph(g) => out.push(g.clone()),
                 Member::Class(c) => {
-                    out.extend(expand(table.get(c.as_str())?.as_ref()?, table, depth + 1)?)
+                    let (defined_at, value) = classes.resolve(c, at)?;
+                    out.extend(expand(value.as_ref()?, classes, defined_at, depth + 1)?)
                 }
             }
         }
@@ -644,7 +682,11 @@ fn class_length_mismatch<'f>(
             let (Some(t), Some(r)) = (&pair.target, &pair.replacement) else {
                 continue;
             };
-            let (Some(from), Some(to)) = (expand(t, &table, 0), expand(r, &table, 0)) else {
+            let used_at = pair.range.start + at;
+            let (Some(from), Some(to)) = (
+                expand(t, &classes, used_at, 0),
+                expand(r, &classes, used_at, 0),
+            ) else {
                 continue;
             };
             if from.len() == to.len() || to.len() == 1 {

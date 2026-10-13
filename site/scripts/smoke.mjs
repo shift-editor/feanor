@@ -65,14 +65,22 @@ const diffKeyword = await page.waitForFunction(() => {
 }, null, { timeout: 10000 }).then(() => true, () => false);
 check(diffKeyword, "diffs highlight FEA keywords");
 
-// consequences: a scene shaped by HarfBuzz, with the code switching on the toggle
-const scene = page.locator("#consequences figure").first();
-check((await scene.locator("svg path").count()) === 5, "scene draws the five glyphs of Tokyo");
+// consequences: scenes shaped by HarfBuzz, with the code switching on the toggle
+const consequences = page.locator("#consequences");
+const scene = consequences.locator("figure").first();
+check((await scene.locator("svg path").count()) === 5, "first scene draws the five glyphs of Tokyo");
 await scene.hover();
 await scene.getByRole("button", { name: "Fixed" }).click();
 check(!(await scene.innerText()).includes("pos T o -180"), "fixed version shows the fixed code");
 await scene.getByRole("button", { name: "As written" }).click();
 check((await scene.innerText()).includes("R003 duplicate-pair"), "written version shows the R003 diagnostic");
+for (const [tab, code] of [["An exception that comes too late", "R001"], ["Two compilers, two fonts", "R002"], ["A languagesystem after a feature", "E003"]]) {
+  await consequences.getByRole("tab", { name: tab }).click();
+  const shown = consequences.locator("figure").first();
+  await shown.hover();
+  await shown.getByText(code).first().waitFor({ timeout: 10000 });
+  check(true, `scene "${tab}" shows ${code}`);
+}
 
 // speed: two hatched charts, a tooltip on hover, a table view
 const fast = page.locator("#fast");

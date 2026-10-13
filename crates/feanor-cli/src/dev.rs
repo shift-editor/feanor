@@ -42,6 +42,10 @@ pub(crate) enum DevCommand {
         /// Write the compiled bytes here.
         #[arg(long)]
         out: Option<PathBuf>,
+        /// Use exactly the glyphs in `--glyphs` (a text file), in its order, so
+        /// glyph ids match a font with that glyph order.
+        #[arg(long, requires = "glyphs")]
+        exact_order: bool,
     },
     /// Time lint and format in-process (median of several runs), as JSON.
     Bench {
@@ -60,9 +64,12 @@ pub(crate) fn run(command: DevCommand) -> Result<ExitCode, String> {
         DevCommand::Verify { file, glyphs } => verify(&file, glyphs.as_deref()),
         DevCommand::Truncate { file } => truncate(&file),
         DevCommand::Incremental { file, glyphs } => incremental(&file, glyphs.as_deref()),
-        DevCommand::Compile { file, glyphs, out } => {
-            compile_report(&file, glyphs.as_deref(), out.as_deref())
-        }
+        DevCommand::Compile {
+            file,
+            glyphs,
+            out,
+            exact_order,
+        } => compile_report(&file, glyphs.as_deref(), out.as_deref(), exact_order),
         DevCommand::Bench { file, glyphs, runs } => bench(&file, glyphs.as_deref(), runs),
     }
 }
@@ -382,14 +389,24 @@ fn compile_report(
     path: &Path,
     glyphs: Option<&Path>,
     out: Option<&Path>,
+    exact_order: bool,
 ) -> Result<ExitCode, String> {
     let src = text_of(path)?;
-    let font = glyphs
-        .map(load_glyphs)
-        .transpose()?
-        .map(|g| fea_rs_glyphs(g.iter().map(String::from)))
-        .transpose()?;
-    let map = glyph_map_with_file_names(&src, font.as_ref(), false);
+    let map = match glyphs {
+        Some(list) if exact_order => {
+            let names = text_of(list)?;
+            let names = names.lines().map(str::trim).filter(|n| !n.is_empty());
+            fea_rs_glyphs(names.map(String::from))?
+        }
+        _ => {
+            let font = glyphs
+                .map(load_glyphs)
+                .transpose()?
+                .map(|g| fea_rs_glyphs(g.iter().map(String::from)))
+                .transpose()?;
+            glyph_map_with_file_names(&src, font.as_ref(), false)
+        }
+    };
     let result = Compiler::<NopFeatureProvider, NopVariationInfo>::new(path, &map)
         .print_warnings(true)
         .compile_binary();
