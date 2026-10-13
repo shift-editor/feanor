@@ -5,10 +5,13 @@ import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
 import { RuleDoc } from "@/components/RuleDoc";
 import { Section } from "@/components/Section";
-import { ShapingScene } from "@/components/ShapingScene";
+import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
+import duplicateSubstitution from "@/scenes/duplicate-substitution.json";
+import languagesystemAfterFeature from "@/scenes/languagesystem-after-feature.json";
+import unreachableRule from "@/scenes/unreachable-rule.json";
 
 const VERSION = "0.1.0";
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -77,8 +80,16 @@ function GithubIcon() {
   );
 }
 
-/** Scene code without the `languagesystem` line every scene starts with. */
-const withoutHeader = (fea: string) => fea.replace("languagesystem DFLT dflt;\n", "");
+/** Scene code without the default `languagesystem` line, unless the scene is about it. */
+const withoutHeader = (fea: string) =>
+  fea.split("languagesystem").length > 2 ? fea : fea.replace("languagesystem DFLT dflt;\n", "");
+
+const SCENES = [
+  { id: "duplicate-pair", title: "Kerning written twice", data: duplicatePair, file: "kern.fea", pair: 0 },
+  { id: "unreachable-rule", title: "An exception that comes too late", data: unreachableRule, file: "calt.fea" },
+  { id: "duplicate-substitution", title: "Two compilers, two fonts", data: duplicateSubstitution, file: "ss01.fea" },
+  { id: "languagesystem", title: "A languagesystem after a feature", data: languagesystemAfterFeature, file: "features.fea" },
+];
 
 export default async function Home() {
   const examples: Example[] = [
@@ -88,6 +99,13 @@ export default async function Home() {
   ].map((e) => ({ ...e, text: example(e.file), credit: credit(e.file) }));
   const glyphs = glyphList("playground-glyphs.txt");
   const rules = ruleDocs();
+  const scenes: Scene[] = SCENES.map(({ file, ...s }) => ({
+    ...s,
+    code: {
+      written: <Code label={file} lang="fea" code={withoutHeader(s.data.written.fea)} />,
+      meant: <Code label={`${file}, fixed`} lang="fea" code={withoutHeader(s.data.meant.fea)} />,
+    },
+  }));
 
   return (
     <div className="mx-auto flex max-w-[68rem] flex-col gap-24 px-4 pb-20 sm:px-6">
@@ -178,16 +196,7 @@ export default async function Home() {
           </p>
         }
       >
-        <ShapingScene
-          scene={duplicatePair}
-          pair={0}
-          code={{
-            written: <Code label="kern.fea" lang="fea" code={withoutHeader(duplicatePair.written.fea)} />,
-            meant: <Code label="kern.fea, fixed" lang="fea" code={withoutHeader(duplicatePair.meant.fea)} />,
-          }}
-          labels={{ written: "Ships", meant: "Meant" }}
-          fixed="The later value was the correction, so the first one goes. (Feanor's automatic fix removes the ignored line instead, which keeps the font as it ships.)"
-        />
+        <ShapingScenes scenes={scenes} />
       </Section>
 
       <Section
