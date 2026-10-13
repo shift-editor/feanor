@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Fragment_Mono, Inter } from "next/font/google";
+import { DM_Sans, Fragment_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 const mono = Fragment_Mono({ subsets: ["latin"], weight: "400", variable: "--font-fragment-mono" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
+const dmSans = DM_Sans({ subsets: ["latin"], style: ["normal", "italic"], display: "swap", variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://feanor.shift.graphics"),
@@ -14,8 +15,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${mono.variable} ${inter.variable}`}>
-      <body className="min-h-screen">{children}</body>
+    <html lang="en" className={`${mono.variable} ${inter.variable} ${dmSans.variable}`}>
+      <head>
+        {/* Shift's Adobe Fonts kit, for aktiv-grotesk headings as on shift.graphics */}
+        <link rel="stylesheet" href="https://use.typekit.net/xvg1cxs.css" />
+      </head>
+      <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
 }

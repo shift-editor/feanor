@@ -1,9 +1,27 @@
 @import "tailwindcss";
 
 /* Shift's tokens (shift.graphics), light only for now */
+/* shift.graphics' tokens and type scale (src/app/globals.css there), light only for now */
 @theme inline {
   --font-mono: var(--font-fragment-mono);
   --font-ui: var(--font-inter);
+  --font-copy: var(--font-dm-sans);
+  --font-release-heading: "aktiv-grotesk", var(--font-inter), sans-serif;
+
+  --text-display: 3.375rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.075em;
+  --text-display--font-weight: 700;
+  --text-heading: 2rem;
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: -0.05em;
+  --text-heading--font-weight: 700;
+  --text-subheading: 1.75rem;
+  --text-subheading--line-height: 1.2;
+  --text-subheading--letter-spacing: -0.075em;
+  --text-subheading--font-weight: 700;
+  --text-copy: 1rem;
+  --text-copy--line-height: 1.5;
 
   --color-app: #ffffff;
   --color-surface: #fafaf8;
@@ -18,15 +36,7 @@
   --color-accent: #0c92f4;
   --color-danger: #991b1b;
   --color-danger-surface: #fef2f2;
-
-  --text-display: 3.375rem;
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.06em;
-  --text-display--font-weight: 700;
-  --text-heading: 1.75rem;
-  --text-heading--line-height: 1.15;
-  --text-heading--letter-spacing: -0.04em;
-  --text-heading--font-weight: 700;
+  --color-danger-line: #fca5a5;
 }
 
 :root {
@@ -36,15 +46,19 @@
 }
 
 body {
+  overflow-x: hidden;
   background: var(--color-app);
   color: var(--color-primary);
-  font-family: var(--font-ui);
+  font-family: var(--font-fragment-mono), monospace;
   -webkit-font-smoothing: antialiased;
 }
 
 @layer components {
   .button-primary {
     @apply rounded-md bg-primary px-3 py-1.5 font-ui text-xs font-medium text-white transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+  .button-accent {
+    @apply rounded-md bg-accent px-3.5 py-2 font-ui text-sm font-medium text-white transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
   .button-quiet {
     @apply rounded-md border border-line bg-surface-raised px-3 py-1.5 font-ui text-xs font-medium text-primary transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
@@ -56,12 +70,20 @@ body {
     @apply rounded-md border border-line px-2.5 py-1 font-ui text-xs text-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white;
   }
   .prose-rule h1 { @apply hidden; }
-  .prose-rule h2 { @apply mt-4 mb-1 font-ui text-sm font-semibold first:mt-0; }
-  .prose-rule p, .prose-rule li { @apply font-ui text-sm leading-relaxed text-secondary; }
+  .prose-rule h2 { @apply mt-5 mb-1 font-release-heading text-base font-bold tracking-[-0.03em] first:mt-0; }
+  .prose-rule p, .prose-rule li { @apply font-copy text-[15px] leading-relaxed text-secondary; }
   .prose-rule p { @apply my-2; }
   .prose-rule ul { @apply my-2 list-disc pl-5; }
   .prose-rule code { @apply rounded bg-surface-muted px-1 py-0.5 font-mono text-[12px]; }
   .prose-rule pre { @apply my-2 overflow-x-auto rounded-md bg-surface-raised p-3 font-mono text-[12px] leading-relaxed; }
   .prose-rule pre code { @apply bg-transparent p-0; }
   .prose-rule a { @apply text-accent underline; }
+}
+
+/* Shiki output inside Code: keep the block's own surface and type */
+.code-block pre.shiki {
+  background: transparent !important;
+  font-family: var(--font-fragment-mono), monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
 }

@@ -51,6 +51,29 @@ check((await lint.innerText()).includes("Why it matters"), "rule explanation ope
 const rules = await page.locator("#rules summary").count();
 check(rules === 11, `rules table lists ${rules} rules`);
 
+// speed: two hatched charts, a tooltip on hover, a table view
+const fast = page.locator("#fast");
+const bars = await fast.locator("figure").count();
+check(bars === 2, `speed section has ${bars} charts`);
+await fast.getByText("Harmattan features.fea").first().hover();
+check(await fast.getByRole("tooltip").isVisible(), "chart tooltip shows on hover");
+await fast.getByText("Show as table").first().click();
+check((await fast.locator("table").first().innerText()).includes("65,379 lines"), "chart table view opens");
+
+// code samples are highlighted
+const coloured = await page.locator("#ci .code-block span[style*=color], #anywhere .code-block span[style*=color]").count();
+check(coloured > 20, `code blocks highlighted (${coloured} coloured spans)`);
+
+// shift.graphics typography
+const fonts = await page.evaluate(async () => {
+  await document.fonts.ready;
+  const h1 = getComputedStyle(document.querySelector("h1")).fontFamily;
+  const lede = getComputedStyle(document.querySelector("#formatting p")).fontFamily;
+  return { h1, lede, aktiv: document.fonts.check('700 54px "aktiv-grotesk"') && [...document.fonts].some((f) => f.family.includes("aktiv") && f.status === "loaded") };
+});
+check(fonts.h1.includes("aktiv-grotesk") && fonts.lede.includes("DM Sans"), `headings ${fonts.h1.split(",")[0]}, copy ${fonts.lede.split(",")[0]}`);
+console.log(`info aktiv-grotesk loaded from Adobe Fonts here: ${fonts.aktiv}`);
+
 await page.screenshot({ path: "smoke.png", fullPage: true });
 check(errors.length === 0, `no page errors${errors.length ? ": " + errors.join(" | ") : ""}`);
 await browser.close();

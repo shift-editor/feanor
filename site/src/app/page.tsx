@@ -1,18 +1,20 @@
 import ReactMarkdown from "react-markdown";
+import { Code } from "@/components/Code";
 import { CopyCommand } from "@/components/CopyCommand";
 import { type Example, FormatDemo } from "@/components/FormatDemo";
 import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
 import { Section } from "@/components/Section";
+import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 
 const VERSION = "0.1.0";
 const GITHUB = "https://github.com/shift-editor/feanor";
 
-const LINKS = [
-  { label: "GitHub", href: GITHUB },
+const NAV = [
+  { label: "Rules", href: "#rules" },
+  { label: "CI", href: "#ci" },
   { label: "Docs", href: "https://docs.rs/feanor" },
-  { label: "crates.io", href: "https://crates.io/crates/feanor-cli" },
 ];
 
 const STATS = [
@@ -21,31 +23,59 @@ const STATS = [
   { value: "2,749 / 2,749", label: "planted mistakes found by the linter, at the right place" },
 ];
 
-const CI = `- run: cargo install feanor-cli
-- run: feanor check sources/features.fea --format github`;
+const CI = `name: Feature code
+on: [push, pull_request]
 
-const RUST = `use feanor::{format, lint, FormatOptions, LintOptions};
+jobs:
+  feanor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: cargo install feanor-cli --locked
+      - run: feanor check features.fea --format github`;
 
-let formatted = format(source, &FormatOptions::default());
-let diagnostics = lint(source, &LintOptions::default());`;
+const CONFIG = `# feanor.toml
+line-width = 100
 
-const JS = `import init, { format, lint } from "@shift-editor/feanor";
+[lint]
+# check glyph names against the font
+glyphs = "sources/MyFont-Regular.ufo"
+# unused classes are fine in this project
+ignore = ["C004"]`;
+
+const RUST = `use feanor::{
+    format, lint, FormatOptions, GlyphNames, LintOptions,
+};
+
+let glyphs: GlyphNames = names.into_iter().collect();
+let options = LintOptions::default().with_glyphs(&glyphs);
+
+for d in lint(&source, &options) {
+    println!("{}: {}", d.rule.code(), d.message);
+}
+
+let tidy = format(&source, &FormatOptions::default());`;
+
+const JS = `import init, { Document, format } from "@shift-editor/feanor";
 
 await init();
-const diagnostics = lint(source, { glyphs });`;
 
-function Code({ children, label }: { children: string; label?: string }) {
+// As the user types, only the edited part is checked again
+const doc = new Document(source, { glyphs });
+doc.edit(from, to, text);
+const diagnostics = doc.diagnostics();
+
+const tidy = format(source, { lineWidth: 100 });`;
+
+function GithubIcon() {
   return (
-    <figure className="flex min-w-0 flex-col gap-1.5">
-      {label && <figcaption className="font-ui text-xs text-muted">{label}</figcaption>}
-      <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-[13px] leading-relaxed">
-        <code>{children}</code>
-      </pre>
-    </figure>
+    <svg viewBox="0 0 16 16" aria-hidden className="size-5" fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
   );
 }
 
-export default function Home() {
+export default async function Home() {
   const examples: Example[] = [
     { id: "inter", label: "Inter: calt.fea", file: "inter-calt.fea" },
     { id: "recursive", label: "Recursive: common.fea", file: "recursive-common.fea" },
@@ -56,33 +86,43 @@ export default function Home() {
 
   return (
     <div className="mx-auto flex max-w-[68rem] flex-col gap-24 px-4 pb-20 sm:px-6">
-      <header className="flex items-center justify-between pt-5 font-ui text-sm">
-        <a href="#" className="font-mono text-base">
-          feanor
-        </a>
-        <nav className="flex items-center gap-5 text-muted">
-          {LINKS.map((l) => (
-            <a key={l.label} href={l.href} className="hover:text-primary">
-              {l.label}
-            </a>
-          ))}
-          <a href="https://shift.graphics" className="hover:text-primary">
-            by Shift
+      <header className="font-ui">
+        <nav
+          aria-label="Main navigation"
+          className="grid grid-cols-[1fr_auto] items-center gap-x-6 pt-8 text-sm sm:grid-cols-[1fr_auto_1fr] [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-offset-4 [&_a]:focus-visible:outline-accent"
+        >
+          <a href="#" className="justify-self-start font-release-heading text-xl font-bold tracking-[-0.06em]">
+            Feanor.
           </a>
+          <div className="hidden items-center gap-8 sm:flex">
+            {NAV.map((l) => (
+              <a key={l.label} href={l.href} className="transition-colors hover:text-accent">
+                {l.label}
+              </a>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 justify-self-end">
+            <a href={GITHUB} aria-label="Feanor on GitHub" className="transition-opacity hover:opacity-60">
+              <GithubIcon />
+            </a>
+            <a href="#install" className="button-accent">
+              Install
+            </a>
+          </div>
         </nav>
       </header>
 
       <section className="flex flex-col gap-8">
         <div className="flex max-w-[44rem] flex-col gap-5">
-          <h1 className="font-ui text-[2.5rem] font-bold leading-[1.05] tracking-[-0.05em] text-balance sm:text-display">
+          <h1 className="font-release-heading text-[2.5rem] leading-[1.05] font-bold tracking-[-0.06em] text-balance sm:text-display">
             Format and lint OpenType feature files
           </h1>
-          <p className="max-w-[56ch] font-ui text-[17px] leading-relaxed text-secondary">
+          <p className="max-w-[56ch] font-copy text-[1.0625rem] leading-relaxed text-secondary">
             Feanor is a fast formatter and linter for <code className="font-mono text-[15px]">.fea</code> code,
             written in Rust on fea-rs. Formatting only touches whitespace, so it never changes the compiled font.
             The linter finds misspelled glyphs, mismatched classes, and invisible characters, with fixes.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
+          <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-3">
             <CopyCommand command="cargo install feanor-cli" />
             <span className="rounded-full border border-line px-2.5 py-1 font-mono text-xs text-muted">v{VERSION}</span>
           </div>
@@ -160,8 +200,8 @@ export default function Home() {
         <dl className="grid gap-4 sm:grid-cols-3">
           {STATS.map((s) => (
             <div key={s.label} className="flex flex-col gap-1 border-t border-primary pt-3">
-              <dt className="order-2 font-ui text-sm leading-snug text-muted">{s.label}</dt>
-              <dd className="order-1 font-ui text-heading tabular-nums">{s.value}</dd>
+              <dt className="order-2 font-copy text-sm leading-snug text-muted">{s.label}</dt>
+              <dd className="order-1 font-release-heading text-heading">{s.value}</dd>
             </div>
           ))}
         </dl>
@@ -173,10 +213,13 @@ export default function Home() {
         lede={
           <p>
             Feanor lints a 65,000-line feature file in 0.2 seconds and formats it in 0.3. In an editor, it re-checks
-            only the part you changed: about a millisecond per keystroke on a typical file.
+            only the part you changed, so even the largest file re-checks in a couple of milliseconds per
+            keystroke.
           </p>
         }
-      />
+      >
+        <SpeedCharts />
+      </Section>
 
       <Section
         id="ci"
@@ -190,8 +233,9 @@ export default function Home() {
           </p>
         }
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Code label="GitHub Actions">{CI}</Code>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-2">
+          <Code label=".github/workflows/feanor.yml" lang="yaml" code={CI} />
+          <div className="flex min-w-0 flex-col gap-4">
           <figure className="flex flex-col gap-1.5">
             <figcaption className="font-ui text-xs text-muted">On the pull request</figcaption>
             <div className="rounded-lg border border-line bg-surface-raised p-4 font-ui text-sm">
@@ -205,6 +249,8 @@ export default function Home() {
               </p>
             </div>
           </figure>
+          <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
+          </div>
         </div>
       </Section>
 
@@ -219,13 +265,13 @@ export default function Home() {
           </p>
         }
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Code label="Rust">{RUST}</Code>
-          <Code label="JavaScript (WebAssembly)">{JS}</Code>
+        <div className="grid max-w-[48rem] grid-cols-[minmax(0,1fr)] gap-6">
+          <Code label="Rust" lang="rust" code={RUST} />
+          <Code label="JavaScript (WebAssembly)" lang="javascript" code={JS} />
         </div>
       </Section>
 
-      <footer className="flex flex-col gap-3 border-t border-line pt-6 font-ui text-xs text-muted">
+      <footer className="flex flex-col gap-3 border-t border-line pt-6 font-copy text-xs text-muted">
         <p>
           Feanor is open source under the MIT or Apache 2.0 licence, made by{" "}
           <a href="https://shift.graphics" className="text-primary hover:underline">
