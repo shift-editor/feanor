@@ -74,15 +74,32 @@ fn print_human(path: &str, text: &str, d: &Diagnostic) {
         col + 1
     );
     println!("{:gutter$} {}", "", paint(dim, "|"));
-    let shown: String = line.chars().take(120).collect();
+    // show at most 120 characters of the line, scrolled so the caret is visible
+    const SHOWN: usize = 120;
+    let skip = if col + underline.min(40) > SHOWN {
+        col.saturating_sub(40)
+    } else {
+        0
+    };
+    let (lead, caret_col) = if skip > 0 {
+        ("…", col - skip + 1)
+    } else {
+        ("", col)
+    };
+    let shown: String = line.chars().skip(skip).take(SHOWN).collect();
+    let more = if line.chars().count() > skip + SHOWN {
+        "…"
+    } else {
+        ""
+    };
     println!(
-        "{} {} {shown}",
+        "{} {} {lead}{shown}{more}",
         paint(dim, &(line_no + 1).to_string()),
         paint(dim, "|")
     );
-    let width = underline.min(120usize.saturating_sub(col).max(1));
+    let width = underline.min((SHOWN + lead.len()).saturating_sub(caret_col).max(1));
     println!(
-        "{:gutter$} {} {:col$}{}",
+        "{:gutter$} {} {:caret_col$}{}",
         "",
         paint(dim, "|"),
         "",
