@@ -15,7 +15,7 @@ export function CopyCommand({ command }: { command: string }) {
     }
   }
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm">
+    <div className="flex items-center gap-3 card px-3 py-2 font-mono text-sm">
       <span className="select-none text-placeholder">$</span>
       <code className="select-all">{command}</code>
       <button type="button" onClick={copy} className="ml-1 font-ui text-xs text-muted hover:text-primary">

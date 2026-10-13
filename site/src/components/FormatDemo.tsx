@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Checkbox, Labelled, Segmented, Select, Slider } from "./controls";
 import { DiffView } from "./DiffView";
+import { AppWindow } from "./Window";
+
+const lines = (text: string) => text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
 import { type FeanorModule, loadFeanor } from "@/lib/feanor";
 
 export interface Example {
@@ -41,51 +45,69 @@ export function FormatDemo({ examples }: { examples: Example[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-x-6 gap-y-3 font-ui text-sm">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">File</span>
-          <select value={id} onChange={(e) => setId(e.target.value)} className="control">
-            {examples.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">Indent</span>
-          <select value={indent} onChange={(e) => setIndent(e.target.value as IndentChoice)} className="control">
-            <option value="auto">Keep the file's</option>
-            <option value="2">2 spaces</option>
-            <option value="4">4 spaces</option>
-            <option value="tab">Tab</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">Line width: {width}</span>
-          <input type="range" min={60} max={140} step={5} value={width} onChange={(e) => setWidth(Number(e.target.value))} />
-        </label>
-        <label className="flex items-center gap-2 pb-1.5">
-          <input type="checkbox" checked={keepAlignment} onChange={(e) => setKeepAlignment(e.target.checked)} />
+      <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+        <div className="w-52">
+          <Labelled label="File">
+            <Select value={id} onChange={setId} options={examples.map((e) => ({ value: e.id, label: e.label }))} />
+          </Labelled>
+        </div>
+        <div className="w-36">
+          <Labelled label="Indent">
+            <Select
+              value={indent}
+              onChange={setIndent}
+              options={[
+                { value: "auto", label: "Keep the file's" },
+                { value: "2", label: "2 spaces" },
+                { value: "4", label: "4 spaces" },
+                { value: "tab", label: "Tab" },
+              ]}
+            />
+          </Labelled>
+        </div>
+        <div className="w-40">
+          <Labelled label={`Line width: ${width}`}>
+            <Slider value={width} onChange={setWidth} min={60} max={140} step={5} label="Line width" />
+          </Labelled>
+        </div>
+        <Checkbox checked={keepAlignment} onChange={setKeepAlignment}>
           Keep hand alignment
-        </label>
-        <div className="flex gap-1 pb-0.5" role="group" aria-label="Diff layout">
-          {(["split", "unified"] as const).map((l) => (
-            <button key={l} type="button" aria-pressed={layout === l} onClick={() => setLayout(l)} className="segment">
-              {l === "split" ? "Split" : "Unified"}
-            </button>
-          ))}
+        </Checkbox>
+        <div className="ml-auto">
+          <Segmented
+            label="Diff layout"
+            value={layout}
+            onChange={setLayout}
+            options={[
+              { value: "split", label: "Split" },
+              { value: "unified", label: "Unified" },
+            ]}
+          />
         </div>
       </div>
-      {result ? (
-        <DiffView name={example.file} before={example.text} after={result.text} layout={layout} />
-      ) : (
-        <p className="font-ui text-sm text-muted">Loading Feanor…</p>
-      )}
-      <p className="font-ui text-xs text-muted">
-        {result && `Formatted in ${result.ms.toFixed(1)} ms in your browser. `}
-        {example.credit}
-      </p>
+      <AppWindow
+        title="Format"
+        detail={example.file}
+        status={
+          result && (
+            <>
+              <span>Formatted in {result.ms.toFixed(1)} ms, in your browser</span>
+              <span className="flex-1" />
+              <span className="tabular-nums">
+                {lines(example.text)} → {lines(result.text)} lines
+              </span>
+              <span>FEA</span>
+            </>
+          )
+        }
+      >
+        {result ? (
+          <DiffView name={example.file} before={example.text} after={result.text} layout={layout} height="32rem" />
+        ) : (
+          <p className="px-4 py-6 font-ui text-sm text-muted">Loading Feanor…</p>
+        )}
+      </AppWindow>
+      <p className="font-ui text-xs text-muted">{example.credit}</p>
     </div>
   );
 }

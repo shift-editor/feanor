@@ -33,6 +33,12 @@
   --color-placeholder: #a3a3a3;
   --color-line: #d4d4d4;
   --color-line-subtle: #e5e5e5;
+  /* control fills from the Shift app (apps/desktop/src/renderer/index.css) */
+  --color-input: #ededed;
+  --color-hover: #e5e5e5;
+  --color-control-muted: #c2c2c2;
+  --color-stripe: #f2f2f2;
+  --color-chrome: #dcdcdc;
   --color-accent: #0c92f4;
   --color-danger: #991b1b;
   --color-danger-surface: #fef2f2;
@@ -54,23 +60,58 @@ body {
 }
 
 @layer components {
+  /*
+   * Shift's docs card: square, a 1px ink border, and a halftone shadow offset
+   * down and right. The shadow sits behind the card (z-index -1 in the page's
+   * stacking context), so a card mustn't clip with overflow; clip inside it.
+   */
+  .card {
+    @apply relative border border-primary bg-surface-raised;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    translate: 9px 9px;
+    background-image: radial-gradient(circle, var(--color-primary) 0.6px, transparent 0.9px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    transition: translate 120ms ease-out;
+  }
+  /*
+   * A link card presses into its shadow on hover. It moves with top/left, not
+   * a transform: a transform would make the card a stacking context and pull
+   * the shadow in front of its own background.
+   */
+  a.card {
+    top: 0;
+    left: 0;
+    transition: top 120ms ease-out, left 120ms ease-out;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent;
+  }
+  a.card:hover {
+    top: 4px;
+    left: 4px;
+  }
+  a.card:hover::before {
+    translate: 5px 5px;
+  }
+  .eyebrow {
+    @apply font-ui text-xs font-medium tracking-[0.08em] text-muted uppercase;
+  }
+  /* Shift's Button, primary and default variants at size sm */
   .button-primary {
-    @apply rounded-md bg-primary px-3 py-1.5 font-ui text-xs font-medium text-white transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+    @apply inline-flex h-7 cursor-pointer items-center rounded-md bg-accent px-2.5 font-ui text-[12px] font-medium text-white transition-colors duration-200 hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none;
   }
   .button-accent {
-    @apply rounded-md bg-accent px-3.5 py-2 font-ui text-sm font-medium text-white transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+    @apply border border-primary bg-accent px-3.5 py-2 font-ui text-sm font-medium text-white transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
   .button-quiet {
-    @apply rounded-md border border-line bg-surface-raised px-3 py-1.5 font-ui text-xs font-medium text-primary transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
-  }
-  .control {
-    @apply rounded-md border border-line bg-surface-raised px-2 py-1.5 font-ui text-sm;
-  }
-  .segment {
-    @apply rounded-md border border-line px-2.5 py-1 font-ui text-xs text-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white;
+    @apply inline-flex h-7 cursor-pointer items-center rounded border border-line-subtle bg-surface-raised px-2.5 font-ui text-[12px] text-primary transition-colors duration-200 hover:bg-input focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none;
   }
   .prose-rule h1 { @apply hidden; }
-  .prose-rule h2 { @apply mt-5 mb-1 font-release-heading text-base font-bold tracking-[-0.03em] first:mt-0; }
+  .prose-rule h2 { @apply mt-5 mb-1 font-ui text-xs font-medium tracking-[0.08em] text-muted uppercase; }
   .prose-rule p, .prose-rule li { @apply font-copy text-[15px] leading-relaxed text-secondary; }
   .prose-rule p { @apply my-2; }
   .prose-rule ul { @apply my-2 list-disc pl-5; }

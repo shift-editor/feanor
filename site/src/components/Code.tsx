@@ -7,7 +7,7 @@ export async function Code({ code, lang, label }: { code: string; lang: CodeLang
     <figure className="flex min-w-0 flex-col gap-1.5">
       {label && <figcaption className="font-ui text-xs text-muted">{label}</figcaption>}
       <div
-        className="code-block overflow-x-auto rounded-lg border border-line bg-surface p-4"
+        className="code-block overflow-x-auto border border-line bg-surface p-4"
         // Shiki's output: escaped code in coloured spans
         dangerouslySetInnerHTML={{ __html: html }}
       />

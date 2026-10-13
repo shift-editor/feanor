@@ -3,7 +3,7 @@ import { CopyCommand } from "@/components/CopyCommand";
 import { type Example, FormatDemo } from "@/components/FormatDemo";
 import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
-import { RuleDoc } from "@/components/RuleDoc";
+import { Brief, RuleList } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
@@ -15,6 +15,12 @@ const NAV = [
   { label: "Rules", href: "#rules" },
   { label: "CI", href: "#ci" },
   { label: "Docs", href: "https://docs.rs/feanor" },
+];
+
+const NEXT = [
+  { label: "Install", title: "cargo install feanor-cli", href: "#install" },
+  { label: "Read", title: "The library docs", href: "https://docs.rs/feanor" },
+  { label: "Source", title: "Feanor on GitHub", href: GITHUB },
 ];
 
 const STATS = [
@@ -112,19 +118,20 @@ export default async function Home() {
         </nav>
       </header>
 
-      <section className="flex flex-col gap-8">
-        <div className="flex max-w-[44rem] flex-col gap-5">
+      <section className="flex flex-col gap-10">
+        <div className="flex max-w-[46rem] flex-col gap-5">
+          <p className="eyebrow">A formatter and linter for OpenType feature files</p>
           <h1 className="font-release-heading text-[2.5rem] leading-[1.05] font-bold tracking-[-0.06em] text-balance sm:text-display">
-            Format and lint OpenType feature files
+            Feature code finally gets the tools the rest of the font has
           </h1>
-          <p className="max-w-[56ch] font-copy text-[1.0625rem] leading-relaxed text-secondary">
-            Feanor is a fast formatter and linter for <code className="font-mono text-[15px]">.fea</code> code,
-            written in Rust on fea-rs. Formatting only touches whitespace, so it never changes the compiled font.
-            The linter finds misspelled glyphs, mismatched classes, and invisible characters, with fixes.
+          <p className="max-w-[58ch] font-copy text-[1.0625rem] leading-relaxed text-secondary">
+            The <code className="font-mono text-[15px]">.fea</code> code behind a font&apos;s kerning, ligatures and
+            alternates is written by hand, copied between families, and easy to get subtly wrong. Feanor formats it
+            without ever changing the compiled font, and points out mistakes as you type, with fixes.
           </p>
-          <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-3">
+          <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-x-7 gap-y-4 pt-1">
             <CopyCommand command="cargo install feanor-cli" />
-            <span className="rounded-full border border-line px-2.5 py-1 font-mono text-xs text-muted">v{VERSION}</span>
+            <span className="font-mono text-xs text-muted">v{VERSION} · Rust, on fea-rs</span>
           </div>
         </div>
         <Playground initial={example("playground.fea")} glyphs={glyphs} />
@@ -132,87 +139,71 @@ export default async function Home() {
 
       <Section
         id="formatting"
-        title="Formatting that leaves the font alone"
+        eyebrow="01 · Formatting"
+        title="Safe to run on any font"
         lede={
           <p>
-            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Long glyph classes are
-            packed to the line width, columns you aligned by hand stay aligned, and the file keeps its own indent and
-            line endings. Try it on feature code from real fonts.
+            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on one
+            line are packed to the line width, classes you broke across lines keep your breaks, columns you aligned by
+            hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code from real
+            fonts.
           </p>
         }
       >
         <FormatDemo examples={examples} />
+        <div className="mt-10 flex flex-col gap-6">
+          <div className="flex max-w-[62ch] flex-col gap-2">
+            <h3 className="font-release-heading text-subheading">Checked on all of Google Fonts</h3>
+            <p className="font-copy text-copy text-secondary">
+              Every release formats the feature code from the source repository of every Google Fonts family, then
+              compiles each file before and after with two independent compilers. The layout tables must come out
+              identical.
+            </p>
+          </div>
+          <dl className="grid gap-x-8 gap-y-10 pr-[9px] sm:grid-cols-3">
+            {STATS.map((s) => (
+              <div key={s.label} className="card flex flex-col gap-2 p-5">
+                <dt className="order-2 font-copy text-sm leading-snug text-secondary">{s.label}</dt>
+                <dd className="order-1 font-release-heading text-heading">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </Section>
 
       <Section
         id="linting"
-        title="Mistakes, found where they are"
+        eyebrow="02 · Linting"
+        title="Mistakes, caught where they are"
         lede={
           <p>
-            Every diagnostic points at the exact text, explains itself, and often comes with a fix. Safe fixes can&apos;t
-            change what the font does. Unsafe ones, like renaming a glyph to the closest match, wait for you. Edit the
-            code and the list updates as you type.
+            Misspelled glyphs, classes that don&apos;t line up, invisible characters that arrived by copy-paste. Every
+            diagnostic points at the exact text, explains itself, and often comes with a fix. Safe fixes can&apos;t
+            change what the font does. Unsafe ones, like renaming a glyph to the closest match, wait for you.
           </p>
         }
       >
         <LintDemo
           initial={example("lint.fea")}
           glyphs={glyphs}
-          explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleDoc key={r.code} markdown={r.body} />]))}
+          explanations={Object.fromEntries(rules.map((r) => [r.code, <Brief key={r.code} rule={r} />]))}
         />
-      </Section>
-
-      <Section
-        id="rules"
-        title="Rules"
-        lede={
-          <p>
-            Each rule has a stable code and a page of documentation. Choose rules by code, family or name in{" "}
-            <code className="font-mono text-[14px]">feanor.toml</code>, on the command line, or with a{" "}
-            <code className="font-mono text-[14px]"># noqa</code> comment.
-          </p>
-        }
-      >
-        <div className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line">
-          {rules.map((r) => (
-            <details key={r.code} className="group bg-surface-raised open:bg-surface">
-              <summary className="grid cursor-pointer grid-cols-[4.5rem_minmax(0,1fr)_auto] items-baseline gap-3 px-4 py-3 font-ui text-sm hover:bg-surface sm:grid-cols-[4.5rem_16rem_minmax(0,1fr)_auto]">
-                <span className="font-mono text-xs text-muted">{r.code}</span>
-                <span className="font-mono text-[13px]">{r.name}</span>
-                <span className="hidden truncate text-muted sm:block">{r.fix === "none" ? "" : `fix: ${r.fix}`}</span>
-                <span className="text-xs text-muted">{r.severity}</span>
-              </summary>
-              <div className="max-w-[70ch] px-4 pt-1 pb-5">
-                <RuleDoc markdown={r.body} />
-              </div>
-            </details>
-          ))}
+        <div id="rules" className="mt-10 flex scroll-mt-16 flex-col gap-6">
+          <div className="flex max-w-[62ch] flex-col gap-2">
+            <h3 className="font-release-heading text-subheading">All {rules.length} rules</h3>
+            <p className="font-copy text-copy text-secondary">
+              Each rule has a stable code and a page of documentation. Choose rules by code, family or name in{" "}
+              <code className="font-mono text-[14px]">feanor.toml</code>, on the command line, or with a{" "}
+              <code className="font-mono text-[14px]"># noqa</code> comment.
+            </p>
+          </div>
+        <RuleList rules={rules} />
         </div>
       </Section>
 
       <Section
-        id="tested"
-        title="Tested on all of Google Fonts"
-        lede={
-          <p>
-            Every release is checked against the feature code in the source repository of every Google Fonts family.
-            Each file is formatted, then compiled before and after with two independent compilers, which must produce
-            identical layout tables.
-          </p>
-        }
-      >
-        <dl className="grid gap-4 sm:grid-cols-3">
-          {STATS.map((s) => (
-            <div key={s.label} className="flex flex-col gap-1 border-t border-primary pt-3">
-              <dt className="order-2 font-copy text-sm leading-snug text-muted">{s.label}</dt>
-              <dd className="order-1 font-release-heading text-heading">{s.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </Section>
-
-      <Section
         id="fast"
+        eyebrow="03 · Speed"
         title="Fast enough to run on every keystroke"
         lede={
           <p>
@@ -227,40 +218,42 @@ export default async function Home() {
 
       <Section
         id="ci"
-        title="Keep feature code tidy in CI"
+        eyebrow="04 · Review"
+        title="Tidy feature code on every pull request"
         lede={
           <p>
             <code className="font-mono text-[14px]">feanor check</code> fails when a file isn&apos;t formatted or has
             errors, and with <code className="font-mono text-[14px]">--format github</code> the problems appear as
-            annotations on the pull request. It follows includes and checks every <code className="font-mono text-[14px]">#ifdef</code>{" "}
-            build.
+            annotations on the pull request. It follows includes and checks every{" "}
+            <code className="font-mono text-[14px]">#ifdef</code> build.
           </p>
         }
       >
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
           <Code label=".github/workflows/feanor.yml" lang="yaml" code={CI} />
-          <div className="flex min-w-0 flex-col gap-4">
-          <figure className="flex flex-col gap-1.5">
-            <figcaption className="font-ui text-xs text-muted">On the pull request</figcaption>
-            <div className="rounded-lg border border-line bg-surface-raised p-4 font-ui text-sm">
-              <p className="font-mono text-xs text-muted">features/common.fea, line 72</p>
-              <p className="mt-2 flex gap-2">
-                <span className="rounded bg-danger-surface px-1.5 font-mono text-[11px] leading-5 text-danger">error</span>
-                <span>
-                  <span className="font-mono text-[13px]">C003 undefined-class</span>: class @numbers_dflt is never
-                  defined in the project
-                </span>
-              </p>
-            </div>
-          </figure>
-          <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
+          <div className="flex min-w-0 flex-col gap-6">
+            <figure className="flex flex-col gap-1.5 pr-[9px]">
+              <figcaption className="font-ui text-xs text-muted">On the pull request</figcaption>
+              <div className="card p-4 font-ui text-sm">
+                <p className="font-mono text-xs text-muted">features/common.fea, line 72</p>
+                <p className="mt-2 flex gap-2">
+                  <span className="bg-danger-surface px-1.5 font-mono text-[11px] leading-5 text-danger">error</span>
+                  <span>
+                    <span className="font-mono text-[13px]">C003 undefined-class</span>: class @numbers_dflt is never
+                    defined in the project
+                  </span>
+                </p>
+              </div>
+            </figure>
+            <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
           </div>
         </div>
       </Section>
 
       <Section
         id="anywhere"
-        title="Use it anywhere"
+        eyebrow="05 · Building on it"
+        title="One library, everywhere feature code is edited"
         lede={
           <p>
             Feanor is a Rust library first: the command-line tool, a WebAssembly build for the browser (this page runs
@@ -269,11 +262,20 @@ export default async function Home() {
           </p>
         }
       >
-        <div className="grid max-w-[48rem] grid-cols-[minmax(0,1fr)] gap-6">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
           <Code label="Rust" lang="rust" code={RUST} />
           <Code label="JavaScript (WebAssembly)" lang="javascript" code={JS} />
         </div>
       </Section>
+
+      <nav aria-label="Next steps" className="grid gap-x-8 gap-y-6 pr-[9px] sm:grid-cols-3">
+        {NEXT.map((n) => (
+          <a key={n.label} href={n.href} className="card flex flex-col gap-2 px-6 py-5">
+            <span className="eyebrow">{n.label} →</span>
+            <span className="font-ui text-xl tracking-[-0.01em] text-primary">{n.title}</span>
+          </a>
+        ))}
+      </nav>
 
       <footer className="flex flex-col gap-3 border-t border-line pt-6 font-copy text-xs text-muted">
         <p>

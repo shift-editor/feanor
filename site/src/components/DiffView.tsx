@@ -17,20 +17,26 @@ interface Props {
   before: string;
   after: string;
   layout?: "split" | "unified";
+  /** Height limit, as CSS; the diff scrolls past it. */
+  maxHeight?: string;
+  /**
+   * A fixed height, as CSS. Long diffs need one: the diff renders only the
+   * rows its scroll box shows, and a box sized by its content starts at zero.
+   */
+  height?: string;
 }
 
-/** A before/after diff of a feature file, rendered with @pierre/diffs. */
-export function DiffView({ name, before, after, layout = "split" }: Props) {
+/**
+ * A before/after diff of a feature file, rendered with @pierre/diffs, without
+ * a header or frame: it sits inside an AppWindow, which names the file.
+ */
+export function DiffView({ name, before, after, layout = "split", maxHeight = "36rem", height }: Props) {
   registerFea();
   if (before === after) {
-    return (
-      <p className="rounded-lg border border-line bg-surface px-4 py-6 text-center font-ui text-sm text-muted">
-        Already formatted: nothing to change.
-      </p>
-    );
+    return <p className="px-4 py-6 text-center font-ui text-sm text-muted">Already formatted: nothing to change.</p>;
   }
   return (
-    <div className="max-h-[36rem] overflow-auto rounded-lg border border-line">
+    <div className="overflow-auto" style={{ maxHeight, height }}>
       <MultiFileDiff
         oldFile={{ name, contents: before, lang: "fea" }}
         newFile={{ name, contents: after, lang: "fea" }}
@@ -40,6 +46,9 @@ export function DiffView({ name, before, after, layout = "split" }: Props) {
           themeType: "light",
           overflow: "scroll",
           lineDiffType: "word",
+          // the AppWindow's title bar names the file; hidden rather than disabled,
+          // since a diff without its header renders no rows (@pierre/diffs 1.5.1)
+          unsafeCSS: "[data-diffs-header] { display: none; }",
         }}
       />
     </div>

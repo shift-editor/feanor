@@ -25,8 +25,17 @@ export interface RuleDoc {
   name: string;
   severity: string;
   fix: string;
+  /** The first paragraph of "What it reports", on one line. */
+  summary: string;
+  /** The first ```fea block under "Example", if the rule has one. */
+  example: string | null;
   /** The documentation without its heading and severity line. */
   body: string;
+}
+
+function firstParagraph(markdown: string, heading: string): string {
+  const after = markdown.split(`## ${heading}`)[1] ?? "";
+  return after.trim().split(/\n\s*\n/)[0].replace(/\s+/g, " ");
 }
 
 /** The rule pages in crates/feanor/rules, the same text `feanor rule` prints. */
@@ -39,7 +48,9 @@ export function ruleDocs(): RuleDoc[] {
       const [code, name] = heading.replace(/^#\s+/, "").split(/\s+/);
       const severity = meta.match(/\*\*Severity:\*\*\s*([^·]+)/)?.[1].trim() ?? "";
       const fix = meta.match(/\*\*Fix:\*\*\s*(.+)$/)?.[1].trim() ?? "";
-      return { code, name, severity, fix, body: rest.join("\n").trim() };
+      const body = rest.join("\n").trim();
+      const example = body.split("## Example")[1]?.match(/```fea\n([\s\S]*?)```/)?.[1].trimEnd() ?? null;
+      return { code, name, severity, fix, summary: firstParagraph(body, "What it reports"), example, body };
     })
     .sort((a, b) => a.code.localeCompare(b.code));
 }

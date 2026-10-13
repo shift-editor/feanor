@@ -80,7 +80,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
         <span className="flex flex-wrap gap-x-4 gap-y-1 font-ui text-xs text-secondary">
           {series.map((s) => (
             <span key={s.key} className="flex items-center gap-1.5">
-              <span aria-hidden className="inline-block size-3 rounded-[3px]" style={hatch(s.rgb, s.angle)} />
+              <span aria-hidden className="inline-block size-3" style={hatch(s.rgb, s.angle)} />
               {s.name}
             </span>
           ))}
@@ -106,7 +106,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
                 return (
                   <div key={s.key} className="relative flex h-4 items-center">
                     <div
-                      className="h-full shrink-0 rounded-r-[4px]"
+                      className="h-full shrink-0"
                       style={{ width: `max(3px, ${(v / top) * 100}%)`, ...hatch(s.rgb, s.angle) }}
                     />
                     <span className="ml-2 font-mono text-[11px] whitespace-nowrap text-secondary tabular-nums">
@@ -119,7 +119,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
             {hovered === i && (
               <div
                 role="tooltip"
-                className="pointer-events-none absolute top-[85%] right-20 z-10 rounded-md border border-line bg-surface-raised px-3 py-2 font-ui text-xs shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]"
+                className="pointer-events-none absolute top-[85%] right-20 z-10 border border-primary bg-surface-raised px-3 py-2 font-ui text-xs"
               >
                 <p className="font-medium text-primary">
                   {row.label} <span className="font-mono font-normal text-muted">{row.detail}</span>
@@ -128,7 +128,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
                   {series.map((s) => (
                     <div key={s.key} className="contents">
                       <dt className="flex items-center gap-1.5">
-                        <span aria-hidden className="inline-block size-2.5 rounded-[2px]" style={hatch(s.rgb, s.angle)} />
+                        <span aria-hidden className="inline-block size-2.5" style={hatch(s.rgb, s.angle)} />
                         {s.name}
                       </dt>
                       <dd className="text-right font-mono tabular-nums">{format(row.values[s.key] ?? 0)}</dd>
