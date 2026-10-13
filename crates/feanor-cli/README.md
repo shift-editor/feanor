@@ -5,7 +5,7 @@
 [fea-rs](https://docs.rs/fea-rs).
 
 ```console
-$ cargo install feanor-cli
+$ cargo install --git https://github.com/shift-editor/feanor feanor-cli
 
 $ feanor fmt features.fea               # print formatted
 $ feanor fmt --write features.fea       # rewrite in place
@@ -26,7 +26,7 @@ unformatted files with `--check`), 2 when a file couldn't be read.
 ## In GitHub Actions
 
 ```yaml
-- run: cargo install feanor-cli
+- run: cargo install --git https://github.com/shift-editor/feanor feanor-cli
 - run: feanor check sources/features.fea --format github
 ```
 
