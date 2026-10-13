@@ -34,6 +34,15 @@ pub(crate) enum DevCommand {
         #[arg(long)]
         glyphs: Option<PathBuf>,
     },
+    /// Time lint and format in-process (median of several runs), as JSON.
+    Bench {
+        file: PathBuf,
+        #[arg(long)]
+        glyphs: Option<PathBuf>,
+        /// How many times to run each.
+        #[arg(long, default_value_t = 9)]
+        runs: usize,
+    },
 }
 
 pub(crate) fn run(command: DevCommand) -> Result<ExitCode, String> {
@@ -42,6 +51,7 @@ pub(crate) fn run(command: DevCommand) -> Result<ExitCode, String> {
         DevCommand::Verify { file, glyphs } => verify(&file, glyphs.as_deref()),
         DevCommand::Truncate { file } => truncate(&file),
         DevCommand::Incremental { file, glyphs } => incremental(&file, glyphs.as_deref()),
+        DevCommand::Bench { file, glyphs, runs } => bench(&file, glyphs.as_deref(), runs),
     }
 }
 
@@ -316,4 +326,42 @@ fn incremental(path: &Path, glyphs: Option<&Path>) -> Result<ExitCode, String> {
     } else {
         ExitCode::from(1)
     })
+}
+
+/// Median wall time of `runs` calls, in milliseconds.
+fn median_ms(runs: usize, mut f: impl FnMut()) -> f64 {
+    let mut times: Vec<f64> = (0..runs.max(1))
+        .map(|_| {
+            let t = Instant::now();
+            f();
+            t.elapsed().as_secs_f64() * 1000.0
+        })
+        .collect();
+    times.sort_by(f64::total_cmp);
+    times[times.len() / 2]
+}
+
+fn bench(path: &Path, glyphs: Option<&Path>, runs: usize) -> Result<ExitCode, String> {
+    let src = text_of(path)?;
+    let font = glyphs.map(load_glyphs).transpose()?;
+    let options = match &font {
+        Some(g) => LintOptions::default().with_glyphs(g),
+        None => LintOptions::default(),
+    };
+    let lint_ms = median_ms(runs, || {
+        std::hint::black_box(feanor::lint(&src, &options));
+    });
+    let format_ms = median_ms(runs, || {
+        std::hint::black_box(format(&src, &FormatOptions::default()));
+    });
+    let report = serde_json::json!({
+        "file": path.display().to_string(),
+        "lines": src.lines().count(),
+        "bytes": src.len(),
+        "lint_ms": (lint_ms * 100.0).round() / 100.0,
+        "format_ms": (format_ms * 100.0).round() / 100.0,
+        "runs": runs,
+    });
+    println!("{report}");
+    Ok(ExitCode::SUCCESS)
 }
