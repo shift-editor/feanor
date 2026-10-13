@@ -135,9 +135,10 @@ export default async function Home() {
         title="Formatting that leaves the font alone"
         lede={
           <p>
-            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Long glyph classes are
-            packed to the line width, columns you aligned by hand stay aligned, and the file keeps its own indent and
-            line endings. Try it on feature code from real fonts.
+            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on
+            one line are packed to the line width, while classes you broke into rows keep your rows. Columns you
+            aligned by hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code
+            from real fonts.
           </p>
         }
       >
