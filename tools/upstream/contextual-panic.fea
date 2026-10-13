@@ -1,0 +1,14 @@
+@matra_vocalic_liquids = [gjmvR];
+lookup CONTEXTUAL_ra_to_vocalic_liquid {
+} CONTEXTUAL_ra_to_vocalic_liquid;
+lookup CONTEXTUAL_matra_vocalic_liquid_to_reph {
+  sub @matra_vocalic_liquids by gjReph;
+} CONTEXTUAL_matra_vocalic_liquid_to_reph;
+lookup abvs_ra_matra_vocalic_liquids {
+  sub
+    gjRA'
+    @matra_vocalic_liquids'
+    lookup CONTEXTUAL_matra_vocalic_liquid_to_reph;
+} abvs_ra_matra_vocalic_liquids;
+lookup abvs_consonant_vowel_ligatures {
+} abvs_consonant_vowel_ligatures;
