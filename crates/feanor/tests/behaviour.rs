@@ -115,6 +115,114 @@ fn keeps_class_tables_as_tables() {
     assert_safe(src);
 }
 
+// A class that starts on a new line after `[` keeps the author's line breaks;
+// a class written on one line is packed to the line width.
+
+fn narrow(width: usize) -> FormatOptions {
+    let mut options = four_spaces();
+    options.line_width = width;
+    options
+}
+
+#[test]
+fn keeps_the_rows_of_a_class_that_starts_on_a_new_line() {
+    let src = "@vowels = [\n  a   aacute agrave\n  e eacute\n  i\n];\n";
+    assert_eq!(
+        fmt(src),
+        "@vowels = [\n    a aacute agrave\n    e eacute\n    i\n];\n"
+    );
+    assert_safe(src);
+}
+
+#[test]
+fn keeps_a_class_written_one_glyph_per_line() {
+    let src = "@figures = [\n    zero\n    one\n    two\n];\n";
+    assert_eq!(fmt(src), src);
+    assert_safe(src);
+}
+
+#[test]
+fn packs_a_class_written_on_one_line() {
+    assert_eq!(fmt("@abc = [a   b c];\n"), "@abc = [a b c];\n");
+    let src = "@greek = [alpha beta gamma delta epsilon zeta];\n";
+    assert_eq!(
+        format(src, &narrow(30)).text,
+        "@greek = [\n    alpha beta gamma delta\n    epsilon zeta\n];\n"
+    );
+}
+
+#[test]
+fn packs_a_class_that_wraps_without_a_break_after_the_bracket() {
+    // as FontLab exports them: a long line wrapped at a fixed column
+    let src = "@lc = [a b c\n\td e\n\tf];\n";
+    assert_eq!(fmt(src), "@lc = [a b c d e f];\n");
+    assert_safe(src);
+}
+
+#[test]
+fn wraps_only_the_row_that_is_too_long() {
+    let src = "@greek = [\n    alpha beta gamma delta epsilon\n    zeta eta\n];\n";
+    let out = format(src, &narrow(30)).text;
+    assert_eq!(
+        out,
+        "@greek = [\n    alpha beta gamma delta\n    epsilon\n    zeta eta\n];\n"
+    );
+    assert_eq!(format(&out, &narrow(30)).text, out, "not idempotent");
+}
+
+#[test]
+fn keeps_blank_lines_and_comments_in_a_class_that_keeps_its_rows() {
+    let src = "@marks = [ # above\n  acutecomb gravecomb\n\n\n  # below\n  dotbelowcomb\n];\n";
+    assert_eq!(
+        fmt(src),
+        "@marks = [ # above\n    acutecomb gravecomb\n\n    # below\n    dotbelowcomb\n];\n"
+    );
+    assert_safe(src);
+}
+
+#[test]
+fn keeps_parallel_classes_row_by_row() {
+    let src = "@lc = [\n    a b c\n    d e\n];\n@sc = [\n    a.sc b.sc c.sc\n    d.sc e.sc\n];\n\nfeature smcp {\n    sub @lc by @sc;\n} smcp;\n";
+    assert_eq!(fmt(src), src);
+    assert_safe(src);
+}
+
+#[test]
+fn reindents_the_rows_it_keeps() {
+    let src = "@lc = [\n\ta b\n\t\tc\n];\n";
+    assert_eq!(fmt(src), "@lc = [\n    a b\n    c\n];\n");
+    assert_safe(src);
+}
+
+#[test]
+fn leaves_classes_it_already_packed_alone() {
+    // output of the packing rule starts a new line after `[`, so a second
+    // pass keeps those rows: files formatted before don't change
+    let src = "@greek = [alpha beta gamma delta epsilon zeta eta theta];\n";
+    let once = format(src, &narrow(30)).text;
+    assert_eq!(format(&once, &narrow(30)).text, once);
+    assert_eq!(
+        format(&once, &narrow(100)).text,
+        once,
+        "a wider limit repacks a kept class"
+    );
+}
+
+#[test]
+fn keeps_rows_in_a_class_inside_a_rule() {
+    let src = "feature liga {\n    sub [\n        f\n        f_f\n    ] i by fi;\n} liga;\n";
+    assert_eq!(fmt(src), src);
+    assert_safe(src);
+}
+
+#[test]
+fn does_not_put_a_block_on_one_line_when_a_class_keeps_its_rows() {
+    let src = "feature liga { sub [\n f\n f_f\n] i by fi; } liga;\n";
+    let out = fmt(src);
+    assert!(out.contains("[\n        f\n        f_f\n    ]"), "{out}");
+    assert_safe(src);
+}
+
 #[test]
 fn leaves_unparseable_items_untouched() {
     let src =
@@ -400,10 +508,12 @@ fn glyphs_number_expressions_keep_their_braces_tight() {
 }
 
 #[test]
-fn a_blank_line_after_the_bracket_does_not_force_a_block() {
-    // Farsan: the blank line forced a block, wasn't printed, and the next pass undid the block
+fn a_blank_line_after_the_bracket_formats_the_same_twice() {
+    // Farsan: the blank line forced a block, wasn't printed, and the next pass
+    // undid the block. Now any break after `[` keeps the rows, and the blank
+    // line itself (which would sit right after `[`) is dropped.
     assert_safe("@a = [\n\n    b c\n];\n");
-    assert_eq!(fmt("@a = [\n\n    b c\n];\n"), "@a = [b c];\n");
+    assert_eq!(fmt("@a = [\n\n    b c\n];\n"), "@a = [\n    b c\n];\n");
 }
 
 #[test]

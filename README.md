@@ -59,7 +59,9 @@ With `--format github`, diagnostics appear as annotations on pull requests.
 The formatter changes spacing, indentation, line breaks and blank lines, and
 nothing else.
 
-- Long glyph classes are packed to the line width.
+- A glyph class written on one line is packed to the line width. A class that
+  starts on a new line after `[` keeps your line breaks, and only lines that
+  are too long are wrapped.
 - Columns that were aligned by hand stay aligned, with the column widths recalculated.
 - The file's existing indentation and line endings are kept.
 - Code that doesn't parse is left exactly as written.
