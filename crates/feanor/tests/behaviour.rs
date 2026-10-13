@@ -737,6 +737,33 @@ fn an_error_inside_a_multibyte_character_doesnt_crash() {
 }
 
 #[test]
+fn a_bare_include_is_an_error_not_a_crash() {
+    // fea-rs panics on an include with no path, as when one is half typed
+    for src in [
+        "include",
+        "include path",
+        "feature liga { include } liga;\n",
+        "@a = [x include y];\n",
+    ] {
+        let diags = lint(src, &plain());
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.message.starts_with("include needs a file")),
+            "{src:?}: {diags:?}"
+        );
+        assert_eq!(format(src, &four_spaces()).text, src, "left as written");
+    }
+    // in a comment or a string it's just a word
+    assert!(lint("# include this\n", &plain()).is_empty());
+    assert!(
+        codes("include(a.fea);\ninclude (b.fea);\n")
+            .iter()
+            .all(|c| *c == "P001")
+    );
+}
+
+#[test]
 fn an_include_in_one_file_is_a_hint_to_lint_the_project() {
     let diags = lint(
         "include(classes.fea);\nfeature liga { sub f i by f_i; } liga;\n",

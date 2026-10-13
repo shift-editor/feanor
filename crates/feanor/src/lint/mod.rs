@@ -12,7 +12,7 @@ use fea_rs::{Kind, Node, NodeOrToken};
 use crate::glyphs::GlyphNames;
 
 use crate::diagnostic::{Applicability, Diagnostic, Fix, Related, Rule, Severity, TextEdit};
-use crate::fmt::{parse_glyph_map, parse_with_diagnostics};
+use crate::fmt::{bare_includes, parse_glyph_map, parse_with_diagnostics};
 
 mod lookups;
 
@@ -266,7 +266,28 @@ pub(crate) fn analyze(source: &str, ctx: &LintOptions) -> Facts {
     class_facts(&items, source, ctx.glyphs, &mut facts);
     definition_facts(&items, &mut facts);
     lookups::block_facts(&items, source, ctx.glyphs, &mut facts);
+    report_bare_includes(source, &mut facts);
     facts
+}
+
+/// An `include` without its `(file)` was hidden from the parser (see
+/// `bare_includes`): report it, and drop what the parser said about the stand-in.
+fn report_bare_includes(source: &str, facts: &mut Facts) {
+    let bare = bare_includes(source);
+    if bare.is_empty() {
+        return;
+    }
+    let overlaps = |r: &Range<usize>| bare.iter().any(|b| b.start < r.end && r.start < b.end);
+    facts.local.retain(|d| !overlaps(&d.range));
+    facts.missing_glyphs.retain(|(_, r)| !overlaps(r));
+    for range in bare {
+        facts.local.push(Diagnostic::new(
+            Rule::Syntax,
+            Severity::Error,
+            range,
+            "include needs a file in parentheses: include(path/to/file.fea);",
+        ));
+    }
 }
 
 /// A parse error or warning from fea-rs, as the rule that explains it best.
