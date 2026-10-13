@@ -48,8 +48,22 @@ await lint.getByRole("button", { name: /C001 class-length-mismatch/ }).click();
 check((await lint.innerText()).includes("Why it matters"), "rule explanation opens");
 
 // rules: every rule listed, details expand
-const rules = await page.locator("#rules summary").count();
-check(rules === 11, `rules table lists ${rules} rules`);
+const rules = await page.locator("#rules > ul > li").count();
+check(rules === 11, `rules list shows ${rules} rules`);
+const g001 = page.locator("#rule-G001");
+await g001.getByText("How it works").click();
+const feaSpans = await g001.locator(".code-block span[style*=color]").count();
+check(feaSpans > 5, `rule docs highlight FEA (${feaSpans} coloured spans)`);
+
+// the diffs highlight FEA too: keyword colour from Pierre's theme inside the diff
+await page.locator("#formatting").scrollIntoViewIfNeeded();
+const diffKeyword = await page.waitForFunction(() => {
+  const roots = [...document.querySelectorAll("*")].filter((e) => e.shadowRoot).map((e) => e.shadowRoot);
+  const spans = roots.flatMap((r) => [...r.querySelectorAll("span")]);
+  // tokens are coloured through --diffs-token-light
+  return spans.some((s) => ["sub", "feature", "lookup"].includes(s.textContent.trim()) && /#d32a61/i.test(s.getAttribute("style") ?? ""));
+}, null, { timeout: 10000 }).then(() => true, () => false);
+check(diffKeyword, "diffs highlight FEA keywords");
 
 // speed: two hatched charts, a tooltip on hover, a table view
 const fast = page.locator("#fast");
@@ -57,8 +71,8 @@ const bars = await fast.locator("figure").count();
 check(bars === 2, `speed section has ${bars} charts`);
 await fast.getByText("Harmattan features.fea").first().hover();
 check(await fast.getByRole("tooltip").isVisible(), "chart tooltip shows on hover");
-await fast.getByText("Show as table").first().click();
-check((await fast.locator("table").first().innerText()).includes("65,379 lines"), "chart table view opens");
+check(!(await fast.getByText("Show as table").count()), "no visible table toggle");
+check((await fast.locator(".sr-only table").first().textContent()).includes("65,379 lines"), "chart numbers available to screen readers");
 
 // code samples are highlighted
 const coloured = await page.locator("#ci .code-block span[style*=color], #anywhere .code-block span[style*=color]").count();

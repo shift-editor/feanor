@@ -25,8 +25,31 @@ export interface RuleDoc {
   name: string;
   severity: string;
   fix: string;
+  /** The first paragraph of "What it reports" (Markdown, one line). */
+  summary: string;
+  /** The documentation after that paragraph. */
+  details: string;
   /** The documentation without its heading and severity line. */
   body: string;
+}
+
+const WHAT_IT_REPORTS = "## What it reports";
+
+/**
+ * Split a rule's documentation into its one-paragraph summary (the start of
+ * "What it reports") and everything after that paragraph.
+ */
+function splitSummary(body: string): { summary: string; details: string } {
+  const start = body.indexOf(WHAT_IT_REPORTS);
+  if (start < 0) return { summary: "", details: body };
+
+  const after = body.slice(start + WHAT_IT_REPORTS.length).trimStart();
+  const end = after.search(/\n\s*\n/);
+  const paragraph = end < 0 ? after : after.slice(0, end);
+  const rest = end < 0 ? "" : after.slice(end).trim();
+  // keep the heading when the section continues past its first paragraph
+  const details = rest.startsWith("## ") ? rest : `${WHAT_IT_REPORTS}\n\n${rest}`;
+  return { summary: paragraph.replace(/\s+/g, " ").trim(), details };
 }
 
 /** The rule pages in crates/feanor/rules, the same text `feanor rule` prints. */
@@ -39,7 +62,8 @@ export function ruleDocs(): RuleDoc[] {
       const [code, name] = heading.replace(/^#\s+/, "").split(/\s+/);
       const severity = meta.match(/\*\*Severity:\*\*\s*([^·]+)/)?.[1].trim() ?? "";
       const fix = meta.match(/\*\*Fix:\*\*\s*(.+)$/)?.[1].trim() ?? "";
-      return { code, name, severity, fix, body: rest.join("\n").trim() };
+      const body = rest.join("\n").trim();
+      return { code, name, severity, fix, ...splitSummary(body), body };
     })
     .sort((a, b) => a.code.localeCompare(b.code));
 }

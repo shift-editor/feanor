@@ -159,9 +159,10 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
         </div>
       </div>
 
-      <details className="font-ui text-xs text-muted">
-        <summary className="cursor-pointer hover:text-primary">Show as table</summary>
-        <table className="mt-2 w-full border-collapse text-left text-secondary">
+      {/* the same numbers for screen readers (a table ignores sr-only, so wrap it) */}
+      <div className="sr-only">
+      <table>
+          <caption>{title}</caption>
           <thead>
             <tr className="border-b border-line">
               <th className="py-1 pr-4 font-medium">File</th>
@@ -187,7 +188,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
             ))}
           </tbody>
         </table>
-      </details>
+      </div>
     </figure>
   );
 }

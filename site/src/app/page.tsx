@@ -1,9 +1,10 @@
-import ReactMarkdown from "react-markdown";
 import { Code } from "@/components/Code";
 import { CopyCommand } from "@/components/CopyCommand";
 import { type Example, FormatDemo } from "@/components/FormatDemo";
 import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
+import { RuleDoc } from "@/components/RuleDoc";
+import { RulesList } from "@/components/RulesList";
 import { Section } from "@/components/Section";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
@@ -155,7 +156,11 @@ export default async function Home() {
           </p>
         }
       >
-        <LintDemo initial={example("lint.fea")} glyphs={glyphs} />
+        <LintDemo
+          initial={example("lint.fea")}
+          glyphs={glyphs}
+          explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleDoc key={r.code} markdown={r.body} />]))}
+        />
       </Section>
 
       <Section
@@ -169,21 +174,7 @@ export default async function Home() {
           </p>
         }
       >
-        <div className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line">
-          {rules.map((r) => (
-            <details key={r.code} className="group bg-surface-raised open:bg-surface">
-              <summary className="grid cursor-pointer grid-cols-[4.5rem_minmax(0,1fr)_auto] items-baseline gap-3 px-4 py-3 font-ui text-sm hover:bg-surface sm:grid-cols-[4.5rem_16rem_minmax(0,1fr)_auto]">
-                <span className="font-mono text-xs text-muted">{r.code}</span>
-                <span className="font-mono text-[13px]">{r.name}</span>
-                <span className="hidden truncate text-muted sm:block">{r.fix === "none" ? "" : `fix: ${r.fix}`}</span>
-                <span className="text-xs text-muted">{r.severity}</span>
-              </summary>
-              <div className="prose-rule max-w-[70ch] px-4 pb-5 pt-1">
-                <ReactMarkdown>{r.body}</ReactMarkdown>
-              </div>
-            </details>
-          ))}
-        </div>
+        <RulesList rules={rules} />
       </Section>
 
       <Section

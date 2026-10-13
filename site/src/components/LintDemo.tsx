@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { type ReactNode, useRef, useState } from "react";
 import { FeaEditor, type FeaEditorHandle } from "./FeaEditor";
-import { type Diagnostic, loadFeanor } from "@/lib/feanor";
+import type { Diagnostic } from "@/lib/feanor";
 
 const BADGE = {
   error: "bg-danger-surface text-danger",
@@ -12,14 +11,22 @@ const BADGE = {
 };
 
 /** An editor with deliberate mistakes, the diagnostics Feanor finds, and their fixes. */
-export function LintDemo({ initial, glyphs }: { initial: string; glyphs: string[] }) {
+export function LintDemo({
+  initial,
+  glyphs,
+  explanations,
+}: {
+  initial: string;
+  glyphs: string[];
+  /** Each rule's documentation, rendered on the server, by code. */
+  explanations: Record<string, ReactNode>;
+}) {
   const editor = useRef<FeaEditorHandle>(null);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
-  const [explained, setExplained] = useState<{ code: string; markdown: string } | null>(null);
+  const [explained, setExplained] = useState<string | null>(null);
 
-  async function explain(code: string) {
-    const feanor = await loadFeanor();
-    setExplained(explained?.code === code ? null : { code, markdown: feanor.explain(code) ?? "" });
+  function explain(code: string) {
+    setExplained(explained === code ? null : code);
   }
 
   return (
@@ -59,9 +66,7 @@ export function LintDemo({ initial, glyphs }: { initial: string; glyphs: string[
           {diagnostics.length === 0 && <li className="font-ui text-sm text-muted">No problems found.</li>}
         </ul>
         {explained && (
-          <div className="prose-rule rounded-lg border border-line bg-surface p-4">
-            <ReactMarkdown>{explained.markdown}</ReactMarkdown>
-          </div>
+          <div className="rounded-lg border border-line bg-surface p-4">{explanations[explained]}</div>
         )}
       </div>
     </div>

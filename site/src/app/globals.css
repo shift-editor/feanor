@@ -74,9 +74,9 @@ body {
   .prose-rule p, .prose-rule li { @apply font-copy text-[15px] leading-relaxed text-secondary; }
   .prose-rule p { @apply my-2; }
   .prose-rule ul { @apply my-2 list-disc pl-5; }
-  .prose-rule code { @apply rounded bg-surface-muted px-1 py-0.5 font-mono text-[12px]; }
-  .prose-rule pre { @apply my-2 overflow-x-auto rounded-md bg-surface-raised p-3 font-mono text-[12px] leading-relaxed; }
-  .prose-rule pre code { @apply bg-transparent p-0; }
+  .prose-rule :not(pre) > code { @apply rounded bg-surface-muted px-1 py-0.5 font-mono text-[12px]; }
+  .prose-rule pre:not(.shiki) { @apply my-2 overflow-x-auto rounded-md bg-surface-raised p-3 font-mono text-[12px] leading-relaxed; }
+  .prose-rule pre:not(.shiki) code { @apply bg-transparent p-0; }
   .prose-rule a { @apply text-accent underline; }
 }
 
