@@ -10,8 +10,6 @@ repository.workspace = true
 keywords.workspace = true
 categories = ["development-tools", "text-processing", "parser-implementations"]
 readme = "README.md"
-# remove once the name, licence and repository are settled
-publish = false
 
 [dependencies]
 fea-rs = { workspace = true }

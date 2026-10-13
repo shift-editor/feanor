@@ -6,7 +6,7 @@ All notable changes are listed here. The format follows
 the public interface: a rule is never renamed or renumbered within a major
 version.
 
-## Unreleased
+## 0.1.0 - 2026-10-13
 
 First release.
 

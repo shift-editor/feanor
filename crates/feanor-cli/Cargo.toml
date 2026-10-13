@@ -10,8 +10,6 @@ repository.workspace = true
 keywords.workspace = true
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
-# remove once the name, licence and repository are settled
-publish = false
 
 [[bin]]
 name = "feanor"
