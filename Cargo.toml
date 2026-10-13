@@ -9,8 +9,7 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 authors = ["Kostya Farber"]
-# TODO before publishing: the public repository URL
-# repository = "https://github.com/OWNER/feanor"
+repository = "https://github.com/shift-editor/feanor"
 keywords = ["opentype", "fonts", "fea", "linter", "formatter"]
 
 [workspace.dependencies]
