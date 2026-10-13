@@ -6,7 +6,7 @@ All notable changes are listed here. The format follows
 the public interface: a rule is never renamed or renumbered within a major
 version.
 
-## Unreleased
+## 0.2.0 - 2026-10-13
 
 - `symbols`: where glyph classes, mark classes, and lookups are defined and used, and
   where glyph names are written; `Symbols::at` finds the symbol under a cursor and

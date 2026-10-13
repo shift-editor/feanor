@@ -2,6 +2,9 @@
 
 A fast formatter and linter for OpenType feature files (`.fea`), written in Rust.
 
+> **Alpha.** Feanor is young: rule codes are stable, but the library API may change
+> between 0.x releases. Please report anything it gets wrong.
+
 Feanor is built on [fea-rs](https://github.com/googlefonts/fontc/tree/main/fea-rs),
 the feature compiler used by Google's [fontc](https://github.com/googlefonts/fontc).
 It can be used as a command-line tool, in CI, or as a library inside font editors
