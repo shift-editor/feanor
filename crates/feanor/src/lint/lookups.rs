@@ -17,7 +17,7 @@ use std::rc::Rc;
 
 use fea_rs::Kind;
 
-use super::{Facts, Item, Member, class_table, members, operand};
+use super::{ClassDefs, Facts, Item, Member, members, operand};
 use crate::diagnostic::{Applicability, Diagnostic, Fix, Related, Rule, Severity, TextEdit};
 use crate::glyphs::GlyphNames;
 
@@ -506,12 +506,15 @@ fn contextual(
 
 /// Glyph sets as sorted, deduplicated ids, with class expansions cached.
 struct Glyphs<'f> {
-    classes: HashMap<&'f str, &'f Operand>,
+    classes: ClassDefs<'f>,
+    /// Where the operands being expanded are written, which decides what a class name means.
+    at: usize,
     ids: HashMap<&'f str, u32>,
     names: Vec<&'f str>,
-    expanded: HashMap<&'f str, Option<Rc<[u32]>>>,
+    /// Class expansions by where the definition is.
+    expanded: HashMap<usize, Option<Rc<[u32]>>>,
     /// Class expansions in written order, for substitutions that pair glyphs by index.
-    ordered: HashMap<&'f str, Option<Rc<[u32]>>>,
+    ordered: HashMap<usize, Option<Rc<[u32]>>>,
 }
 
 impl<'f> Glyphs<'f> {
@@ -525,13 +528,16 @@ impl<'f> Glyphs<'f> {
         id
     }
 
-    fn class(&mut self, name: &'f str, depth: usize) -> Option<Rc<[u32]>> {
-        if let Some(cached) = self.expanded.get(name) {
+    /// The class `name` as defined where the current operands are written.
+    fn class(&mut self, name: &str, depth: usize) -> Option<Rc<[u32]>> {
+        let (defined_at, members) = self.classes.resolve(name, self.at)?;
+        if let Some(cached) = self.expanded.get(&defined_at) {
             return cached.clone();
         }
-        let members = self.classes.get(name).and_then(|m| m.as_ref());
-        let value = members.and_then(|m| self.set_of(m, depth + 1));
-        self.expanded.insert(name, value.clone());
+        let used_at = std::mem::replace(&mut self.at, defined_at);
+        let value = members.as_ref().and_then(|m| self.set_of(m, depth + 1));
+        self.at = used_at;
+        self.expanded.insert(defined_at, value.clone());
         value
     }
 
@@ -569,15 +575,18 @@ impl<'f> Glyphs<'f> {
             match m {
                 Member::Glyph(g) => out.push(self.id(g)),
                 Member::Class(c) => {
-                    if let Some(cached) = self.ordered.get(c.as_str()) {
+                    let (defined_at, members) = self.classes.resolve(c, self.at)?;
+                    if let Some(cached) = self.ordered.get(&defined_at) {
                         out.extend(cached.as_ref()?.iter().copied());
                         continue;
                     }
-                    let inner = self.classes.get(c.as_str()).and_then(|m| m.as_ref());
-                    let value: Option<Rc<[u32]>> = inner
+                    let used_at = std::mem::replace(&mut self.at, defined_at);
+                    let value: Option<Rc<[u32]>> = members
+                        .as_ref()
                         .and_then(|m| self.list_of(m, depth + 1))
                         .map(Into::into);
-                    self.ordered.insert(c, value.clone());
+                    self.at = used_at;
+                    self.ordered.insert(defined_at, value.clone());
                     out.extend(value?.iter().copied());
                 }
             }
@@ -655,7 +664,7 @@ pub(crate) fn check<'f>(
     pieces: impl Iterator<Item = (usize, &'f Facts)> + Clone,
     out: &mut Vec<Diagnostic>,
 ) {
-    let classes = class_table(pieces.clone());
+    let classes = ClassDefs::new(pieces.clone());
     let mut mark_class_members: HashMap<&str, Vec<&Member>> = HashMap::new();
     let mut unknown_mark_classes: HashSet<&str> = HashSet::new();
     for (_, f) in pieces.clone() {
@@ -670,6 +679,7 @@ pub(crate) fn check<'f>(
     }
     let mut glyphs = Glyphs {
         classes,
+        at: 0,
         ids: HashMap::new(),
         names: Vec::new(),
         expanded: HashMap::new(),
@@ -814,6 +824,7 @@ fn duplicate_substitutions<'f>(
 ) {
     let mut first: HashMap<u32, (&RuleFact, Vec<u32>)> = HashMap::new();
     for rule in lookup {
+        glyphs.at = rule.range.start + at;
         let Some(results) = substitution_results(rule, glyphs) else {
             continue;
         };
@@ -874,6 +885,7 @@ fn duplicate_ligatures<'f>(
     const MAX_SEQUENCES: usize = 4096;
     let mut first: HashMap<Vec<u32>, (&RuleFact, Vec<u32>)> = HashMap::new();
     for rule in lookup {
+        glyphs.at = rule.range.start + at;
         let Some(sets) = glyphs.sequence(&rule.input) else {
             continue;
         };
@@ -937,6 +949,7 @@ fn duplicate_pairs<'f>(
         if !(rule.single_glyph_pair || rule.enumerated) {
             continue;
         }
+        glyphs.at = rule.range.start + at;
         let Some(sets) = glyphs.sequence(&rule.input) else {
             continue;
         };
@@ -1015,6 +1028,7 @@ fn unreachable_rules<'f>(
     let patterns: Vec<Option<Pattern>> = lookup
         .iter()
         .map(|r| {
+            glyphs.at = r.range.start + at;
             let back = glyphs.sequence(&r.backtrack)?;
             let mut ahead = glyphs.sequence(&r.input)?;
             ahead.extend(glyphs.sequence(&r.lookahead)?);
@@ -1089,6 +1103,7 @@ fn mark_class_conflicts<'f>(
     }
     let mut seen: Vec<Attached> = Vec::new();
     for rule in lookup {
+        glyphs.at = rule.range.start + at;
         for (name, range) in &rule.mark_classes {
             if seen.iter().any(|a| a.name == name) || unknown.contains(name.as_str()) {
                 continue;
@@ -1132,7 +1147,7 @@ fn called_lookups<'f>(
     glyphs: &mut Glyphs<'f>,
 ) -> HashMap<&'f str, Called> {
     let mut out: HashMap<&'f str, Called> = HashMap::new();
-    for (_, f) in pieces {
+    for (at, f) in pieces {
         for block in f.blocks.iter().filter(|b| b.kind == BlockKind::Lookup) {
             if out.contains_key(block.name.as_str()) {
                 continue;
@@ -1152,7 +1167,10 @@ fn called_lookups<'f>(
             } else {
                 rules
                     .iter()
-                    .map(|r| r.input.first().and_then(|o| glyphs.set(o)))
+                    .map(|r| {
+                        glyphs.at = r.range.start + at;
+                        r.input.first().and_then(|o| glyphs.set(o))
+                    })
                     .collect::<Option<Vec<_>>>()
                     .map(|sets| {
                         let mut all: Vec<u32> =
@@ -1232,6 +1250,7 @@ fn lookup_calls<'f>(
         let Some(coverage) = &lookup.coverage else {
             continue;
         };
+        glyphs.at = rule.range.start + at;
         let Some(marked) = rule.input.get(*position).and_then(|o| glyphs.set(o)) else {
             continue;
         };
