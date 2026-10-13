@@ -1,0 +1,14 @@
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+
+@lowercase=[a b c d e];
+@smallcaps = [a.sc b.sc c.sc e.sc];
+@figures = [ zero one two three four five six seven eight nine
+  zero.osf one.osf two.osf three.osf four.osf five.osf six.osf seven.osf eight.osf nine.osf ];
+
+feature smpc {
+sub @lowercase by @smallcaps;
+    sub agrve   by agrave.sc;
+} smpc;
+
+feature liga {sub f i by f_i; sub f l by f_l;} liga;

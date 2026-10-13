@@ -1,0 +1,11 @@
+languagesystem DFLT dflt;
+
+@lowercase = [a b c d e];
+@smallcaps = [a.sc b.sc c.sc e.sc];
+@marks = [acutecomb gravecomb acutecomb];
+
+feature smpc {
+    sub @lowercase by @smallcaps;
+    sub agrve by agrave.sc;
+    sub f i by f_i;
+} smpc;

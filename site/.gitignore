@@ -1,0 +1,7 @@
+node_modules/
+.next/
+next-env.d.ts
+# copied from crates/feanor-wasm/pkg by scripts/sync-wasm.mjs
+src/wasm/
+public/feanor_bg.wasm
+smoke.png
