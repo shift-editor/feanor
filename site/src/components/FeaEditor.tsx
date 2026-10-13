@@ -262,6 +262,10 @@ export const FeaEditor = forwardRef<FeaEditorHandle, Props>(function FeaEditor(
       }),
     });
     view.current = v;
+    // line heights measured with the fallback font go stale once Paper Mono loads
+    window.document.fonts?.ready.then(() => {
+      if (!disposed) v.requestMeasure();
+    });
     return () => {
       disposed = true;
       document?.free();

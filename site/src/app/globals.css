@@ -3,7 +3,7 @@
 /* Shift's tokens (shift.graphics), light only for now */
 /* shift.graphics' tokens and type scale (src/app/globals.css there), light only for now */
 @theme inline {
-  --font-mono: var(--font-fragment-mono);
+  --font-mono: var(--font-paper-mono);
   --font-ui: var(--font-inter);
   --font-copy: var(--font-dm-sans);
   --font-release-heading: "aktiv-grotesk", var(--font-inter), sans-serif;
@@ -46,7 +46,9 @@
 }
 
 :root {
-  --font-mono: var(--font-fragment-mono), ui-monospace, monospace;
+  --font-mono: var(--font-paper-mono), ui-monospace, monospace;
+  /* @pierre/diffs reads this inside its shadow DOM */
+  --diffs-font-family: var(--font-paper-mono), ui-monospace, monospace;
   --font-ui: var(--font-inter), system-ui, sans-serif;
   color-scheme: light;
 }
@@ -55,7 +57,7 @@ body {
   overflow-x: hidden;
   background: var(--color-app);
   color: var(--color-primary);
-  font-family: var(--font-fragment-mono), monospace;
+  font-family: var(--font-paper-mono), monospace;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -124,7 +126,7 @@ body {
 /* Shiki output inside Code: keep the block's own surface and type */
 .code-block pre.shiki {
   background: transparent !important;
-  font-family: var(--font-fragment-mono), monospace;
+  font-family: var(--font-paper-mono), monospace;
   font-size: 12.5px;
   line-height: 1.65;
 }

@@ -7,10 +7,10 @@ import { Brief, RuleList } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { ShapingScene } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
+import { MACHINE } from "@/lib/benchmarks";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 
-const VERSION = "0.1.0";
 const GITHUB = "https://github.com/shift-editor/feanor";
 
 const NAV = [
@@ -135,9 +135,7 @@ export default async function Home() {
             without ever changing the compiled font, and points out mistakes as you type, with fixes.
           </p>
           <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-x-7 gap-y-4 pt-1">
-            <CopyCommand command="cargo install feanor-cli" />
-            <span className="font-mono text-xs text-muted">v{VERSION} · Rust, on fea-rs</span>
-          </div>
+            <CopyCommand command="cargo install feanor-cli" />          </div>
         </div>
         <Playground initial={example("playground.fea")} glyphs={glyphs} />
       </section>
@@ -314,7 +312,12 @@ export default async function Home() {
           .
         </p>
         <p>
-          Example feature code: {examples.map((e) => e.credit).join(" ")}
+          Example feature code: {examples.map((e) => e.credit).join(" ")} Shaping examples set in{" "}
+          {duplicatePair.font}, shaped by HarfBuzz.
+        </p>
+        <p>
+          Speeds measured on an {MACHINE}, release build, median of repeated runs, on feature code from Inter, Roboto,
+          Noto Nastaliq Urdu, Gentium and Harmattan.
         </p>
       </footer>
     </div>

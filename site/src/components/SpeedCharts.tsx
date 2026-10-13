@@ -1,7 +1,7 @@
 "use client";
 
 import { HatchedBars, type Series } from "@/components/HatchedBars";
-import { MACHINE, PER_EDIT, WHOLE_FILE } from "@/lib/benchmarks";
+import { PER_EDIT, WHOLE_FILE } from "@/lib/benchmarks";
 
 // One colour per measurement, the same in both charts: Shift's spacing magenta,
 // its accent blue, and the amber it uses for negative spacing.
@@ -37,10 +37,6 @@ export function SpeedCharts() {
         format={ms}
         axis="milliseconds, median over 726 edits"
       />
-      <p className="font-copy text-xs text-muted">
-        Measured on an {MACHINE}, release build, median of repeated runs. Feature code from Inter, Roboto, Noto
-        Nastaliq Urdu, Gentium and Harmattan.
-      </p>
     </div>
   );
 }

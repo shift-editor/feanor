@@ -107,7 +107,6 @@ export function FormatDemo({ examples }: { examples: Example[] }) {
           <p className="px-4 py-6 font-ui text-sm text-muted">Loading Feanor…</p>
         )}
       </AppWindow>
-      <p className="font-ui text-xs text-muted">{example.credit}</p>
     </div>
   );
 }

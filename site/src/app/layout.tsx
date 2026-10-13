@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fragment_Mono, Inter } from "next/font/google";
+import { DM_Sans, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const mono = Fragment_Mono({ subsets: ["latin"], weight: "400", variable: "--font-fragment-mono" });
+// Paper Mono (github.com/paper-design/paper-mono), SIL OFL 1.1: see src/fonts/PaperMono-OFL.txt
+const mono = localFont({
+  src: "../fonts/PaperMono-Variable.woff2",
+  weight: "100 800",
+  variable: "--font-paper-mono",
+  fallback: ["ui-monospace", "monospace"],
+});
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
 const dmSans = DM_Sans({ subsets: ["latin"], style: ["normal", "italic"], display: "swap", variable: "--font-dm-sans" });
 

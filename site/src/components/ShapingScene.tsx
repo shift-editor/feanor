@@ -174,9 +174,6 @@ export function ShapingScene({ scene, pair, code, labels, fixed }: Props) {
             {Math.abs(kern)}
           </span>
         </div>
-        <p className="font-copy text-xs text-muted">
-          Shaped by HarfBuzz from each version of the code. {scene.font}.
-        </p>
       </div>
     </figure>
   );

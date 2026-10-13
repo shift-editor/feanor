@@ -76,10 +76,6 @@ export function Playground({ initial, glyphs }: Props) {
           </div>
         )}
       </AppWindow>
-      <p className="font-ui text-xs text-muted">
-        Problems are underlined, with the message at the end of the line: hover for any fixes. The glyph list for
-        this example is {glyphs.length} names, so misspelled glyphs are caught too.
-      </p>
     </div>
   );
 }
