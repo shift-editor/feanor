@@ -6,7 +6,7 @@ All notable changes are listed here. The format follows
 the public interface: a rule is never renamed or renumbered within a major
 version.
 
-## Unreleased
+## 0.3.0 - 2026-10-14
 
 ### Added
 
@@ -36,12 +36,13 @@ version.
 - Glyph name suggestions skip names that differ in a code point (`uFF10`,
   `u1F10`), a one-letter part (`f_f`, `f_j`) or only digits (`ss01`, `ss02`),
   which name different glyphs rather than typos.
-
+- `format` lays out long rules differently (below), so code formatted by 0.2
+  can change once when formatted again: about 1 file in 6 across the Google
+  Fonts sources. Compiled output is unchanged.
 - `format`: a glyph class that starts on a new line after `[` keeps the
   author's line breaks, so rows that group glyphs, or that line up with a
   parallel class, survive formatting. Only lines that are too long are
   wrapped. Classes written on one line are packed to the line width as before.
-  Files formatted by 0.1 don't change.
 - `format`: when a long rule needs a class split over lines, `by` stays on the
   rule's line if it fits there.
 - `format`: a contextual rule whose glyph sequence is too long for one line

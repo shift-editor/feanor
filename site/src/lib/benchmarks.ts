@@ -1,4 +1,4 @@
-// Measured with `feanor dev bench` and `feanor dev incremental` (feanor 0.1.0 plus the unreleased lookup rules,
+// Measured with `feanor dev bench` and `feanor dev incremental` (feanor 0.3.0,
 // release build) on an AMD Ryzen 5 5500U, single thread, median of repeated runs.
 // Files are real feature code from open-source fonts.
 
