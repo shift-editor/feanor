@@ -22,11 +22,13 @@ const NAV = [
   { label: "Docs", href: "https://docs.rs/feanor" },
 ];
 
-/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold in the scenes. */
+/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold and EB Garamond in the scenes. */
 const CREDITS = [
-  { name: "Inter", href: "https://github.com/rsms/inter" },
+  { name: "Caveat", href: "https://github.com/googlefonts/caveat" },
+  { name: "Zilla Slab", href: "https://github.com/mozilla/zilla-slab" },
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
-  { name: "Noto Nastaliq Urdu", href: "https://github.com/notofonts/nastaliq" },
+  { name: "Inter", href: "https://github.com/rsms/inter" },
+  { name: "EB Garamond", href: "https://github.com/georgd/EB-Garamond" },
 ];
 
 const NEXT = [
