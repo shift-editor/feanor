@@ -17,6 +17,10 @@ https://github.com/google/fonts/raw/main/ofl/idiqlat/Idiqlat-Regular.ttf
 and Coiny Regular (for the kerning scene) is
 https://github.com/google/fonts/raw/main/ofl/coiny/Coiny-Regular.ttf
 
+The joining scene uses two builds of Playwrite AR from its current source, with
+and without its designer's 2023 fix ("Fix zx cnct"); ~/feanor-tools/scenes/
+playwrite_zx.py makes them.
+
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
     --command python3 scenes/build.py \\
@@ -24,6 +28,7 @@ Usage (from site/):
       --martel Martel-Bold.ttf \\
       --idiqlat Idiqlat-Regular.ttf \\
       --coiny Coiny-Regular.ttf \\
+      --extra playwrite-before=playwrite-ar-before.ttf --extra playwrite-after=playwrite-ar-after.ttf \\
       --feanor ../target/release/feanor
 
 Writes src/scenes/<scene>.json.
@@ -51,8 +56,39 @@ MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL 
 IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
            "SIL Open Font License 1.1")
 COINY = "Coiny Regular, © 2015 Marcelo Magalhaes, SIL Open Font License 1.1"
+PLAYWRITE = "Playwrite AR, © 2023 The Playwrite Project Authors, SIL Open Font License 1.1"
 
 SCENES = {
+    "fixed-join": {
+        # built from the font's current source (its designer's fix in place), and with
+        # the line that fix removed put back: see --extra
+        "font": "playwrite-after",
+        "shipped": True,
+        "text": "zx",
+        "focus": [0, 2],
+        "features": {},
+        "variants": {
+            "written": {
+                "label": "Before the fix",
+                "font": "playwrite-before",
+                "fea": "@zful_SRC = [z.cnt.ini z.cnt.med];\n@xmod_TGT = [x.mod.fin x.mod.med];\n@xful_TGT = [x.ful.fin x.ful.med];\n\n"
+                "feature calt {\n    sub @zful_SRC' lookup before_x @xful_TGT;\n"
+                "    sub @zful_SRC' lookup before_x @xmod_TGT;\n"
+                "    sub @zful_SRC' lookup before_xful @xful_TGT;\n} calt;\n",
+                "note": "The first rule picks the connector from z to most forms of x. The rule for this "
+                "form of x comes later, so its connector, drawn to meet the x's diagonal, never appears.",
+            },
+            "meant": {
+                "label": "After the fix",
+                "font": "playwrite-after",
+                "fea": "@zful_SRC = [z.cnt.ini z.cnt.med];\n@xmod_TGT = [x.mod.fin x.mod.med];\n@xful_TGT = [x.ful.fin x.ful.med];\n\n"
+                "feature calt {\n    sub @zful_SRC' lookup before_x @xmod_TGT;\n"
+                "    sub @zful_SRC' lookup before_xful @xful_TGT;\n} calt;\n",
+                "note": "The designer removed the line that caught it first. The connector now meets the "
+                "x where it was drawn to.",
+            },
+        },
+    },
     "duplicate-pair": {
         "font": "coiny",
         # the font as it ships: its kern feature lists three pairs twice, with different values
@@ -332,12 +368,17 @@ def main() -> None:
     args.add_argument("--martel", required=True)
     args.add_argument("--idiqlat", required=True)
     args.add_argument("--coiny", required=True)
+    args.add_argument("--extra", action="append", default=[], metavar="NAME=PATH",
+                      help="a prebuilt font a scene or variant names, e.g. playwrite-before=pw.ttf")
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
     fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
              "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY)}
+    for item in opts.extra:
+        key, path = item.split("=", 1)
+        fonts[key] = (TTFont(path), PLAYWRITE if key.startswith("playwrite") else path)
     OUT.mkdir(parents=True, exist_ok=True)
 
     for name, scene in SCENES.items():
@@ -349,7 +390,7 @@ def main() -> None:
             if "languagesystem" not in fea:
                 fea = DEFAULT_SYSTEM + fea
             if scene.get("shipped"):
-                font = copy(source)
+                font = copy(fonts[variant["font"]][0] if "font" in variant else source)
                 if "patch" in variant:
                     PATCHES[variant["patch"]](font)
             else:

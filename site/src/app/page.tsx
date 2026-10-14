@@ -10,6 +10,7 @@ import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
+import fixedJoin from "@/scenes/fixed-join.json";
 import unreachableImatra from "@/scenes/unreachable-imatra.json";
 import syriacNun from "@/scenes/syriac-nun.json";
 import unreachableRule from "@/scenes/unreachable-rule.json";
@@ -29,6 +30,7 @@ const CREDITS = [
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
   { name: "Inter", href: "https://github.com/rsms/inter" },
   { name: "Coiny", href: "https://github.com/marcelommp/Coiny" },
+  { name: "Playwrite", href: "https://github.com/TypeTogether/Playwrite" },
   { name: "Martel", href: "https://github.com/typeoff/martel" },
   { name: "Idiqlat", href: "https://github.com/silnrsi/font-idiqlat" },
 ];
@@ -104,11 +106,18 @@ const withoutHeader = (fea: string) =>
 // how often each mistake turns up: linting the feature code in the sources of every Google Fonts family
 const SCENES = [
   {
+    id: "fixed-join",
+    title: "A join its designer fixed",
+    data: fixedJoin,
+    file: "calt.fea",
+    found: "From a font's source history. Its designer fixed it in a later commit, in 2023.",
+  },
+  {
     id: "unreachable-imatra",
     title: "An i-matra that never reaches",
     data: unreachableImatra,
     file: "features.fea",
-    found: "From a font as it ships. Found in 4 Google Fonts families.",
+    found: "From a font as it ships.",
   },
   {
     id: "syriac-nun",
@@ -123,13 +132,14 @@ const SCENES = [
     data: duplicatePair,
     file: "features.fea",
     pair: 0,
-    found: "From a font as it ships. Found in 3 Google Fonts families.",
+    found: "From a font as it ships. Pairs written twice with two values are in 3 Google Fonts families.",
   },
   {
     id: "unreachable-rule",
     title: "An exception that comes too late",
     data: unreachableRule,
     file: "calt.fea",
+    found: "An illustration, not from a real font.",
   },
 ];
 
@@ -245,13 +255,21 @@ export default async function Home() {
         />
         <div id="consequences" className="mt-10 flex scroll-mt-16 flex-col gap-6">
           <div className="flex max-w-[62ch] flex-col gap-2">
-            <h3 className="font-release-heading text-subheading">What ships if you don&apos;t fix it</h3>
+            <h3 className="font-release-heading text-subheading">Mistakes that change what readers see</h3>
             <p className="font-copy text-copy text-secondary">
-              Most of these mistakes compile without a word. Here is the same text set from the feature code as
-              written and as meant, shaped by HarfBuzz, the engine in Chrome, Android and Figma.
+              Most of what Feanor reports is clutter: rules that never run, classes nobody uses, the same kerning pair
+              written twice. Some of it Feanor removes for you, safely. A few mistakes change the text itself. The first
+              four come from real fonts: one its designer found and fixed later, three still in the fonts as they
+              ship. The last is an illustration. Feanor flags each one as it&apos;s typed, in the editor and in CI. Every line is shaped by
+              HarfBuzz, the engine in Chrome, Android and Figma.
             </p>
           </div>
           <ShapingScenes scenes={scenes} />
+          <p className="max-w-[62ch] font-copy text-copy text-secondary">
+            Designers do find these mistakes, later. In the source history of 308 Google Fonts repositories with
+            feature files, they fixed 1,960 problems by hand, in small edits, that Feanor flags the moment
+            they&apos;re typed.
+          </p>
         </div>
         <div id="rules" className="mt-10 flex scroll-mt-16 flex-col gap-6">
           <div className="flex max-w-[62ch] flex-col gap-2">
