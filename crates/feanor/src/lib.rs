@@ -59,15 +59,6 @@ pub use symbols::{Symbol, SymbolKind, Symbols, symbols};
 pub mod internal {
     pub use crate::fmt::{glyph_map_with_file_names, parse, parse_glyph_map};
 
-    /// Lint `source` as one whole document: no feature-body detection, no
-    /// project. The reference [`Incremental`](crate::Incremental) must match.
-    pub fn lint_whole_document(
-        source: &str,
-        options: &crate::LintOptions,
-    ) -> Vec<crate::Diagnostic> {
-        crate::lint::lint_document(source, options, &mut Default::default())
-    }
-
     /// Every token except whitespace and parser placeholders, comments
     /// included (with trailing whitespace trimmed, which the formatter removes).
     pub fn significant_tokens(source: &str) -> Vec<(fea_rs::Kind, String)> {

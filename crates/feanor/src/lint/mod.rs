@@ -12,7 +12,7 @@ use fea_rs::{Kind, Node, NodeOrToken};
 use crate::glyphs::GlyphNames;
 
 use crate::diagnostic::{Applicability, Diagnostic, Fix, Related, Rule, Severity, TextEdit};
-use crate::fmt::{bare_includes, parse_glyph_map, parse_with_diagnostics};
+use crate::fmt::{bare_includes, has_error, parse_glyph_map, parse_with_diagnostics};
 
 mod lookups;
 
@@ -134,25 +134,53 @@ fn index<'a>(root: &'a Node) -> Vec<Item<'a>> {
 /// assert_eq!(&source[diagnostics[0].range.clone()], "a");
 /// ```
 pub fn lint(source: &str, options: &LintOptions) -> Vec<Diagnostic> {
-    const OPEN: &str = "feature zzzz {\n";
     let mut cache = Suggestions::new();
-    let as_file = lint_document(source, options, &mut cache);
-    let syntax_errors = |ds: &[Diagnostic]| {
-        ds.iter()
-            .filter(|d| d.rule == Rule::Syntax && d.severity == Severity::Error)
-            .count()
-    };
-    if syntax_errors(&as_file) == 0 {
+    let facts = analyze(source, options);
+    let as_file = combine(std::iter::once((0, &facts)), options, &mut cache);
+    if !may_be_body(&as_file, facts.feature_blocks()) {
         return as_file;
     }
-    let wrapped = format!("{OPEN}{source}\n}} zzzz;\n");
-    let as_body = lint_document(&wrapped, options, &mut cache);
+    let as_body = lint_document(&wrap_body(source), options, &mut cache);
+    choose_body(as_file, as_body, source.len())
+}
+
+/// Whether a text linted as a file, with `feature_blocks` top-level feature
+/// blocks that parse cleanly, might be a feature body: it has syntax errors,
+/// and no such block, which a body can't contain.
+pub(crate) fn may_be_body(as_file: &[Diagnostic], feature_blocks: usize) -> bool {
+    feature_blocks == 0 && syntax_errors(as_file) > 0
+}
+
+/// Opens the `feature` block that a feature body is linted inside.
+pub(crate) const BODY_OPEN: &str = "feature zzzz {\n";
+
+/// `source` as the inside of a `feature` block.
+pub(crate) fn wrap_body(source: &str) -> String {
+    format!("{BODY_OPEN}{source}\n}} zzzz;\n")
+}
+
+/// Syntax errors among `diagnostics`.
+pub(crate) fn syntax_errors(diagnostics: &[Diagnostic]) -> usize {
+    diagnostics
+        .iter()
+        .filter(|d| d.rule == Rule::Syntax && d.severity == Severity::Error)
+        .count()
+}
+
+/// The diagnostics of a text of `len` bytes that [`may_be_body`]: as linted
+/// as a file, or, when that has fewer syntax errors, as a feature body ([`wrap_body`]) with every range
+/// moved back into the text.
+pub(crate) fn choose_body(
+    as_file: Vec<Diagnostic>,
+    as_body: Vec<Diagnostic>,
+    len: usize,
+) -> Vec<Diagnostic> {
     if syntax_errors(&as_body) >= syntax_errors(&as_file) {
         return as_file;
     }
-    let inside = OPEN.len()..OPEN.len() + source.len();
+    let inside = BODY_OPEN.len()..BODY_OPEN.len() + len;
     let in_source = |r: &Range<usize>| inside.contains(&r.start) && r.end <= inside.end;
-    let back = |r: &mut Range<usize>| *r = r.start - OPEN.len()..r.end - OPEN.len();
+    let back = |r: &mut Range<usize>| *r = r.start - BODY_OPEN.len()..r.end - BODY_OPEN.len();
     as_body
         .into_iter()
         .filter(|d| in_source(&d.range))
@@ -208,9 +236,16 @@ pub(crate) struct Facts {
     languagesystems: Vec<lookups::LanguageSystem>,
     /// Top-level feature blocks, for the order of `languagesystem` statements.
     feature_starts: Vec<lookups::FeatureStart>,
+    /// Top-level feature blocks without a syntax error, which a feature body can't hold.
+    clean_feature_blocks: usize,
 }
 
 impl Facts {
+    /// Top-level feature blocks in this piece that parse cleanly.
+    pub(crate) fn feature_blocks(&self) -> usize {
+        self.clean_feature_blocks
+    }
+
     /// Class definitions: name and the name's range.
     pub(crate) fn class_definitions(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
         self.class_defs
@@ -289,7 +324,15 @@ pub(crate) fn analyze(source: &str, ctx: &LintOptions) -> Facts {
     let map = parse_glyph_map(source);
     let (tree, parse_diagnostics) = parse_with_diagnostics(source, Some(&map));
     let items = index(tree.root());
-    let mut facts = Facts::default();
+    let mut facts = Facts {
+        clean_feature_blocks: tree
+            .root()
+            .iter_children()
+            .filter_map(NodeOrToken::as_node)
+            .filter(|n| n.kind() == Kind::FeatureNode && !has_error(n))
+            .count(),
+        ..Facts::default()
+    };
 
     for d in parse_diagnostics.diagnostics() {
         let severity = if d.is_error() {

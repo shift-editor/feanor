@@ -257,7 +257,8 @@ fn layout_kind(kind: Kind, parent: Kind) -> Kind {
     }
 }
 
-fn has_error(node: &Node) -> bool {
+/// Whether `node` or anything inside it failed to parse.
+pub(crate) fn has_error(node: &Node) -> bool {
     node.error
         || node
             .iter_children()

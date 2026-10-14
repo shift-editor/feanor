@@ -11,16 +11,20 @@
 //! trusted in isolation and the whole document is rebuilt.
 //!
 //! The diagnostics are always the ones a full [`lint`](crate::lint()) of the
-//! same text would report; the test suite checks this after random edits.
+//! same text would report, feature bodies included; the test suites check this
+//! after random edits.
 
 use std::ops::Range;
 
 use fea_rs::{Kind, NodeOrToken};
 
 use crate::diagnostic::Diagnostic;
-use crate::fmt::{parse, parse_glyph_map};
+use crate::fmt::{has_error, parse, parse_glyph_map};
 use crate::glyphs::GlyphNames;
-use crate::lint::{Facts, LintOptions, Suggestions, analyze, combine};
+use crate::lint::{
+    BODY_OPEN, Facts, LintOptions, Suggestions, analyze, choose_body, combine, may_be_body,
+    wrap_body,
+};
 
 struct Chunk {
     start: usize,
@@ -43,6 +47,11 @@ pub struct Incremental {
     glyphs: Option<GlyphNames>,
     project: bool,
     suggestions: Suggestions,
+    /// The text as a feature body ([`wrap_body`]), kept while the text
+    /// [`may_be_body`], since [`lint`](crate::lint()) then also tries it that way.
+    body: Option<Box<Incremental>>,
+    /// This is the `body` of another document: lint it only as written.
+    wrapped: bool,
 }
 
 /// What an [`Incremental::edit`] cost.
@@ -94,12 +103,6 @@ fn split(text: &str) -> (Vec<Range<usize>>, bool) {
     (out, trustworthy)
 }
 
-fn has_error(n: &fea_rs::Node) -> bool {
-    n.error
-        || n.iter_children()
-            .any(|c| c.as_node().is_some_and(has_error))
-}
-
 impl Incremental {
     /// Lint `text` and keep what's needed to re-lint it after edits. The
     /// options, including a copy of the glyph names, last as long as the document.
@@ -110,6 +113,23 @@ impl Incremental {
             glyphs: options.glyphs.cloned(),
             project: options.project,
             suggestions: Suggestions::new(),
+            body: None,
+            wrapped: false,
+        };
+        doc.rebuild();
+        doc
+    }
+
+    /// `self`'s text as a feature body, linted as written.
+    fn new_body(&self) -> Incremental {
+        let mut doc = Incremental {
+            text: wrap_body(&self.text),
+            chunks: Vec::new(),
+            glyphs: self.glyphs.clone(),
+            project: self.project,
+            suggestions: Suggestions::new(),
+            body: None,
+            wrapped: true,
         };
         doc.rebuild();
         doc
@@ -143,6 +163,10 @@ impl Incremental {
     /// Panics when `range` is out of bounds or doesn't fall on UTF-8 character
     /// boundaries, as [`String::replace_range`] does.
     pub fn edit(&mut self, range: Range<usize>, new_text: &str) -> EditStats {
+        if let Some(body) = &mut self.body {
+            let open = BODY_OPEN.len();
+            body.edit(range.start + open..range.end + open, new_text);
+        }
         self.text.replace_range(range.clone(), new_text);
         let removed = range.len();
         let shift = |at: usize| at + new_text.len() - removed;
@@ -205,17 +229,37 @@ impl Incremental {
         crate::Symbols::from_pieces(self.chunks.iter().map(|c| (c.start, &c.facts)))
     }
 
-    /// The diagnostics for the current text, as [`lint`](crate::lint()) reports them
-    /// for a whole document (feature bodies aren't detected here).
+    /// The diagnostics for the current text, as [`lint`](crate::lint()) reports
+    /// them, including for a feature body.
+    ///
+    /// While the text has a syntax error and no feature block, so it might be a
+    /// feature body, a copy of it wrapped in a `feature` block is kept in step
+    /// with every edit (built in full the first time), so telling a body from a
+    /// broken file stays incremental.
     pub fn diagnostics(&mut self) -> Vec<Diagnostic> {
         let options = LintOptions {
             glyphs: self.glyphs.as_ref(),
             project: self.project,
         };
-        combine(
+        let as_file = combine(
             self.chunks.iter().map(|c| (c.start, &c.facts)),
             &options,
             &mut self.suggestions,
-        )
+        );
+        let feature_blocks = self.chunks.iter().map(|c| c.facts.feature_blocks()).sum();
+        if self.wrapped || !may_be_body(&as_file, feature_blocks) {
+            // a document with feature blocks keeps no body copy to update on every edit
+            self.body = None;
+            return as_file;
+        }
+        if self.body.is_none() {
+            self.body = Some(Box::new(self.new_body()));
+        }
+        let as_body = self
+            .body
+            .as_mut()
+            .map(|b| b.diagnostics())
+            .unwrap_or_default();
+        choose_body(as_file, as_body, self.text.len())
     }
 }

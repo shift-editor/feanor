@@ -8,9 +8,7 @@ use std::time::Instant;
 use clap::Subcommand;
 use fea_rs::compile::{Compiler, NopFeatureProvider, NopVariationInfo};
 use fea_rs::{GlyphIdent, GlyphMap, Node, NodeOrToken};
-use feanor::internal::{
-    first_token_mismatch, glyph_map_with_file_names, lint_whole_document, parse, parse_glyph_map,
-};
+use feanor::internal::{first_token_mismatch, glyph_map_with_file_names, parse, parse_glyph_map};
 use feanor::{Diagnostic, FormatOptions, Incremental, Indent, LintOptions, format};
 
 use crate::inputs::{load_glyphs, read_input};
@@ -319,7 +317,7 @@ fn incremental(path: &Path, glyphs: Option<&Path>) -> Result<ExitCode, String> {
             continue;
         }
         let t = Instant::now();
-        let want = lint_whole_document(doc.text(), &options);
+        let want = feanor::lint(doc.text(), &options);
         full_ms.push(t.elapsed().as_secs_f64() * 1000.0);
         if key(&got) != key(&want) {
             mismatches += 1;

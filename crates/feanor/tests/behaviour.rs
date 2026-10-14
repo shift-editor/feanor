@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use feanor::internal::{first_token_mismatch, lint_whole_document};
+use feanor::internal::first_token_mismatch;
 use feanor::{
     Applicability, Diagnostic, FormatOptions, GlyphNames, Incremental, Indent, LintOptions,
     Project, Rule, Severity, apply_noqa, detect_indent, format, lint,
@@ -472,6 +472,26 @@ fn incremental_linting_matches_a_full_lint_for_the_lookup_rules() {
     assert_incremental_matches_full_lint(&LOOKUP_DEMO.repeat(2));
 }
 
+#[test]
+fn incremental_linting_matches_a_full_lint_for_a_feature_body() {
+    // the smallest case found: typing `sub ` makes the text parse only as a body
+    let mut doc = Incremental::new("[];".to_string(), plain());
+    doc.edit(0..0, "sub ");
+    assert_eq!(doc.diagnostics(), lint("sub [];", &plain()));
+    assert!(doc.diagnostics().is_empty());
+
+    // an `aalt` body: `feature frac;` doesn't parse as a file, so it's no feature block
+    let aalt = "feature frac;\nfeature locl;\nsub a from [a.alt a.ss01];\n";
+    assert!(lint(aalt, &plain()).is_empty());
+    let mut doc = Incremental::new(aalt.to_string(), plain());
+    assert!(doc.diagnostics().is_empty());
+
+    assert_incremental_matches_full_lint(
+        &"@lc = [a b a];\nsub f i by f_i;\nlookup L { sub a by b; } L;\nsub [a b]' lookup L c;\n"
+            .repeat(3),
+    );
+}
+
 /// 300 random edits; after each, the incremental linter must agree with a full lint.
 fn assert_incremental_matches_full_lint(text: &str) {
     let mut doc = Incremental::new(text.to_string(), plain());
@@ -501,7 +521,7 @@ fn assert_incremental_matches_full_lint(text: &str) {
                 .map(|d| format!("{} {:?} {}", d.rule, d.range, d.message))
                 .collect::<Vec<_>>()
         };
-        let full = lint_whole_document(doc.text(), &plain());
+        let full = lint(doc.text(), &plain());
         assert_eq!(key(doc.diagnostics()), key(full), "after edit {step}");
     }
 }

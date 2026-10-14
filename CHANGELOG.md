@@ -58,6 +58,11 @@ version.
   instead of crashing (also in 0.1.0).
 - `format`: rows that line up without needing any padding are formatted as
   ordinary statements, not as a table.
+- `format` reports `# fmt: off` regions in `untouched`, as documented.
+- `Incremental` (and the WebAssembly `Document`) report what `lint` reports
+  for a feature body too, instead of syntax errors. A text is tried as a
+  feature body only when it has syntax errors and no feature block that
+  parses, since a body can't contain one.
 
 ## 0.2.0 - 2026-10-13
 
