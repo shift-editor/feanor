@@ -9,8 +9,23 @@ use similar::{ChangeTag, TextDiff};
 
 use crate::OutputFormat;
 
+/// Whether to print in colour: never with `NO_COLOR`, always with
+/// `FORCE_COLOR` or `CLICOLOR_FORCE` (for output that isn't a terminal but
+/// shows colours, such as a browser terminal), otherwise when stdout is a
+/// terminal. A variable set to `0` or to nothing counts as unset.
+fn use_color(var: impl Fn(&str) -> Option<String>, terminal: bool) -> bool {
+    let set = |name: &str| var(name).is_some_and(|v| !v.is_empty() && v != "0");
+    if set("NO_COLOR") {
+        return false;
+    }
+    set("FORCE_COLOR") || set("CLICOLOR_FORCE") || terminal
+}
+
 fn painter() -> impl Fn(Style, &str) -> String {
-    let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+    let color = use_color(
+        |name| std::env::var(name).ok(),
+        std::io::stdout().is_terminal(),
+    );
     move |style: Style, s: &str| {
         if color {
             format!("{style}{s}{style:#}")
@@ -230,5 +245,33 @@ pub(crate) fn print_diff(name: &str, before: &str, after: &str) {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::use_color;
+
+    fn env<'a>(vars: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        move |name| {
+            vars.iter()
+                .find(|(k, _)| *k == name)
+                .map(|(_, v)| v.to_string())
+        }
+    }
+
+    #[test]
+    fn colour_follows_the_terminal_unless_told_otherwise() {
+        assert!(use_color(env(&[]), true));
+        assert!(!use_color(env(&[]), false));
+        assert!(use_color(env(&[("FORCE_COLOR", "1")]), false));
+        assert!(use_color(env(&[("CLICOLOR_FORCE", "1")]), false));
+        assert!(!use_color(env(&[("FORCE_COLOR", "0")]), false));
+        assert!(!use_color(env(&[("NO_COLOR", "1")]), true));
+        assert!(!use_color(
+            env(&[("NO_COLOR", "1"), ("FORCE_COLOR", "1")]),
+            true
+        ));
+        assert!(use_color(env(&[("NO_COLOR", "")]), true));
     }
 }

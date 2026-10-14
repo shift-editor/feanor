@@ -6,6 +6,14 @@ All notable changes are listed here. The format follows
 the public interface: a rule is never renamed or renumbered within a major
 version.
 
+## Unreleased
+
+### Added
+
+- `FORCE_COLOR` and `CLICOLOR_FORCE` make the CLI print in colour when its
+  output isn't a terminal (a browser terminal, a CI log that shows colours).
+  `NO_COLOR` still turns colour off.
+
 ## 0.3.0 - 2026-10-14
 
 ### Added

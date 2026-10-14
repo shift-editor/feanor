@@ -57,6 +57,9 @@ unformatted files, and 2 when a file can't be read.
 
 With `--format github`, diagnostics appear as annotations on pull requests.
 
+Output is in colour when it goes to a terminal. Set `FORCE_COLOR=1` to keep
+colour elsewhere (a CI log that shows it), or `NO_COLOR=1` to turn it off.
+
 ## Formatting
 
 The formatter changes spacing, indentation, line breaks and blank lines, and
