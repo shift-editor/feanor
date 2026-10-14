@@ -26,7 +26,6 @@ playwrite_zx.py makes them.
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
     --command python3 scenes/build.py \\
-      --inter "$(nix build --no-link --print-out-paths nixpkgs#inter)/share/fonts/truetype/InterVariable.ttf" \\
       --martel Martel-Bold.ttf \\
       --idiqlat Idiqlat-Regular.ttf \\
       --coiny Coiny-Regular.ttf --shafarik Shafarik-Regular.ttf \\
@@ -49,11 +48,9 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.subset import Options, Subsetter
 from fontTools.ttLib import TTFont
-from fontTools.varLib.instancer import instantiateVariableFont
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "scenes"
 
-INTER = "Inter Bold, © 2016 The Inter Project Authors, SIL Open Font License 1.1"
 MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL Open Font License 1.1"
 IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
            "SIL Open Font License 1.1")
@@ -116,31 +113,6 @@ SCENES = {
                 "note": "With the later values, F a closes up by 25 units. Only the designer knows which "
                 "value was meant; Feanor's automatic fix removes the ignored line, which keeps the font "
                 "as it ships.",
-            },
-        },
-    },
-    "unreachable-rule": {
-        "font": "inter",
-        "text": "T-Rex x-Ray",
-        "glyphs": ["T", "R", "e", "x", "a", "y", "hyphen", "hyphen.case", "space"],
-        "features": {"calt": True},
-        "variants": {
-            # the exception for a lowercase letter comes after the rule it should stop
-            "written": {
-                "label": "As written",
-                "fea": "@upper = [R T];\n@lower = [a e x y];\n\nfeature calt {\n"
-                "    sub hyphen' @upper by hyphen.case;\n"
-                "    ignore sub @lower hyphen' @upper;\n} calt;\n",
-                "note": "A hyphen before a capital is raised to the middle of the capitals. The "
-                "exception for one after a lowercase letter never runs, so in x-Ray it floats above the x.",
-            },
-            "meant": {
-                "label": "Fixed",
-                "fea": "@upper = [R T];\n@lower = [a e x y];\n\nfeature calt {\n"
-                "    ignore sub @lower hyphen' @upper;\n"
-                "    sub hyphen' @upper by hyphen.case;\n} calt;\n",
-                "note": "The exception goes first. Within a lookup the first rule that matches wins, "
-                "so an ignore after the rule it should stop never runs.",
             },
         },
     },
@@ -419,7 +391,6 @@ def focus(fonts: dict, variants: dict, first: int, last: int) -> list[float]:
 
 def main() -> None:
     args = argparse.ArgumentParser()
-    args.add_argument("--inter", required=True)
     args.add_argument("--martel", required=True)
     args.add_argument("--idiqlat", required=True)
     args.add_argument("--coiny", required=True)
@@ -429,8 +400,7 @@ def main() -> None:
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
-    inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
-    fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
+    fonts = {"martel": (TTFont(opts.martel), MARTEL),
              "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY),
              "shafarik": (TTFont(opts.shafarik), SHAFARIK)}
     for item in opts.extra:

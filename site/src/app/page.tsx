@@ -14,7 +14,6 @@ import fixedJoin from "@/scenes/fixed-join.json";
 import ligatureAddsLetter from "@/scenes/ligature-adds-letter.json";
 import unreachableImatra from "@/scenes/unreachable-imatra.json";
 import syriacNun from "@/scenes/syriac-nun.json";
-import unreachableRule from "@/scenes/unreachable-rule.json";
 
 const GITHUB = "https://github.com/shift-editor/feanor";
 
@@ -24,12 +23,11 @@ const NAV = [
   { label: "Docs", href: "https://docs.rs/feanor" },
 ];
 
-/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold and Martel Bold in the scenes. */
+/** Fonts whose feature code or outlines appear on the page: the code examples and the scenes. */
 const CREDITS = [
   { name: "Caveat", href: "https://github.com/googlefonts/caveat" },
   { name: "Zilla Slab", href: "https://github.com/mozilla/zilla-slab" },
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
-  { name: "Inter", href: "https://github.com/rsms/inter" },
   { name: "Coiny", href: "https://github.com/marcelommp/Coiny" },
   { name: "Playwrite", href: "https://github.com/TypeTogether/Playwrite" },
   { name: "Shafarik", href: "https://github.com/slavonic/Shafarik" },
@@ -142,13 +140,6 @@ const SCENES = [
     file: "features.fea",
     pair: 0,
     found: "From a font as it ships. Pairs written twice with two values are in 3 Google Fonts families.",
-  },
-  {
-    id: "unreachable-rule",
-    title: "An exception that comes too late",
-    data: unreachableRule,
-    file: "calt.fea",
-    found: "An illustration, not from a real font.",
   },
 ];
 
@@ -267,9 +258,8 @@ export default async function Home() {
             <h3 className="font-release-heading text-subheading">Mistakes that change what readers see</h3>
             <p className="font-copy text-copy text-secondary">
               Most of what Feanor reports is clutter: rules that never run, classes nobody uses, the same kerning pair
-              written twice. Some of it Feanor removes for you, safely. A few mistakes change the text itself. The first
-              five come from real fonts: one its designer found and fixed later, four still in the fonts as they
-              ship. The last is an illustration. Feanor flags each one as it&apos;s typed, in the editor and in CI. Every line is shaped by
+              written twice. Some of it Feanor removes for you, safely. A few mistakes change the text itself. These come
+              from real fonts: one its designer found and fixed later, four still in the fonts as they ship. Feanor flags each one as it&apos;s typed, in the editor and in CI. Every line is shaped by
               HarfBuzz, the engine in Chrome, Android and Figma.
             </p>
           </div>

@@ -72,7 +72,6 @@ const scenes = [
   ["An i-matra that never reaches", "R001", "As shipped", "Fixed", 5],
   ["A gap that never opens", "R005", "As shipped", "Fixed", 7],
   ["Kerning written twice", "R003", "As shipped", "Later values", 4],
-  ["An exception that comes too late", "R001", "As written", "Fixed", 11],
 ];
 for (const [tab, code, written, fixed, glyphs] of scenes) {
   await consequences.getByRole("tab", { name: tab }).click();
@@ -85,7 +84,7 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   await scene.locator(`span:visible:text-is("${code}")`).first().waitFor({ timeout: 10000 });
   const drawn = await scene.locator("svg").first().locator("path").count();
   check(drawn === glyphs, `scene "${tab}" shows ${code} and draws ${drawn} glyphs`);
-  check(/From a font|An illustration/.test(await scene.innerText()), `scene "${tab}" says where it comes from`);
+  check(/From a font/.test(await scene.innerText()), `scene "${tab}" says where it comes from`);
   await toggle(fixed).click();
   check(!(await scene.locator(`span:visible:text-is("${code}")`).count()), `scene "${tab}" hides the diagnostic once fixed`);
 }
