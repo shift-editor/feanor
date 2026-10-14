@@ -68,6 +68,7 @@ check(after === before - 1, `safe fix removed one problem (${before} -> ${after}
 const consequences = page.locator("#consequences");
 const scenes = [
   ["A join its designer fixed", "R001", "Before the fix", "After the fix", 3],
+  ["A ligature that adds a letter", "R002", "As shipped", "Fixed", 4],
   ["An i-matra that never reaches", "R001", "As shipped", "Fixed", 5],
   ["A gap that never opens", "R005", "As shipped", "Fixed", 7],
   ["Kerning written twice", "R003", "As shipped", "Later values", 4],

@@ -14,7 +14,9 @@ Martel Bold (for the i-matra scene) is
 https://github.com/google/fonts/raw/main/ofl/martel/Martel-Bold.ttf
 Idiqlat Regular (for the Syriac scene) is
 https://github.com/google/fonts/raw/main/ofl/idiqlat/Idiqlat-Regular.ttf
-and Coiny Regular (for the kerning scene) is
+and Shafarik Regular (for the ligature scene) is
+https://github.com/google/fonts/raw/main/ofl/shafarik/Shafarik-Regular.ttf
+Coiny Regular (for the kerning scene) is
 https://github.com/google/fonts/raw/main/ofl/coiny/Coiny-Regular.ttf
 
 The joining scene uses two builds of Playwrite AR from its current source, with
@@ -27,7 +29,7 @@ Usage (from site/):
       --inter "$(nix build --no-link --print-out-paths nixpkgs#inter)/share/fonts/truetype/InterVariable.ttf" \\
       --martel Martel-Bold.ttf \\
       --idiqlat Idiqlat-Regular.ttf \\
-      --coiny Coiny-Regular.ttf \\
+      --coiny Coiny-Regular.ttf --shafarik Shafarik-Regular.ttf \\
       --extra playwrite-before=playwrite-ar-before.ttf --extra playwrite-after=playwrite-ar-after.ttf \\
       --feanor ../target/release/feanor
 
@@ -56,6 +58,7 @@ MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL 
 IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
            "SIL Open Font License 1.1")
 COINY = "Coiny Regular, © 2015 Marcelo Magalhaes, SIL Open Font License 1.1"
+SHAFARIK = "Shafarik Regular, © 2025 The Shafarik Project Authors, SIL Open Font License 1.1"
 PLAYWRITE = "Playwrite AR, © 2023 The Playwrite Project Authors, SIL Open Font License 1.1"
 
 SCENES = {
@@ -138,6 +141,32 @@ SCENES = {
                 "    sub hyphen' @upper by hyphen.case;\n} calt;\n",
                 "note": "The exception goes first. Within a lookup the first rule that matches wins, "
                 "so an ignore after the rule it should stop never runs.",
+            },
+        },
+    },
+    "ligature-adds-letter": {
+        "font": "shafarik",
+        # the font as it ships on Google Fonts; its source was fixed in 2025 (issue #8)
+        "shipped": True,
+        "text": "ⱂⰲ ⱂⰲⰾ",
+        "features": {"ss05": True},
+        "variants": {
+            "written": {
+                "label": "As shipped",
+                "fea": "feature ss05 {\n    sub uni2C42 uni2C32 by uF040E;\n"
+                "    sub uni2C42 uni2C32 uni2C34 by uF040F;\n"
+                "    sub uni2C42 uni2C32 by uF0411;\n} ss05;\n",
+                "note": "A three-letter ligature was written with two letters, so it claims ⱂⰲ too. "
+                "fea-rs and fontTools reject this today, but the font was built with a tool that kept the "
+                "later rule: ⱂⰲ shows the three-letter ligature, and ⱂⰲⰾ shows ⰾ twice.",
+            },
+            "meant": {
+                "label": "Fixed",
+                "patch": "shafarik-ss05",
+                "fea": "feature ss05 {\n    sub uni2C42 uni2C32 by uF040E;\n"
+                "    sub uni2C42 uni2C32 uni2C34 by uF040F;\n"
+                "    sub uni2C42 uni2C32 uni2C3E by uF0411;\n} ss05;\n",
+                "note": "The designer's fix adds the missing letter, and each sequence gets its own ligature.",
             },
         },
     },
@@ -289,7 +318,33 @@ def later_pairs(font: TTFont) -> None:
 
 
 
-PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18, "later-pairs": later_pairs}
+def shafarik_ss05(font: TTFont) -> None:
+    """The designer's 2025 fix: the three-letter ligature needs its third letter,
+    and ⱂⰲ gets back the two-letter ligature the compiler dropped."""
+    from fontTools.ttLib.tables import otTables as ot
+
+    fixed = 0
+    for lookup in font["GSUB"].table.LookupList.Lookup:
+        if lookup.LookupType != 4:
+            continue
+        for subtable in lookup.SubTable:
+            for first, ligatures in subtable.ligatures.items():
+                if not first.startswith("uni2C42"):
+                    continue
+                suffix = first[len("uni2C42"):]
+                for lig in list(ligatures):
+                    if lig.LigGlyph == "uF0411" and lig.Component == ["uni2C32" + suffix]:
+                        lig.Component = ["uni2C32" + suffix, "uni2C3E" + suffix]
+                        two = ot.Ligature()
+                        two.LigGlyph, two.Component = "uF040E", ["uni2C32" + suffix]
+                        ligatures.append(two)
+                        fixed += 1
+                ligatures.sort(key=lambda lig: -len(lig.Component))
+    if not fixed:
+        raise SystemExit("the ⱂⰲ ligature wasn't found in this font's GSUB")
+
+
+PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18, "later-pairs": later_pairs, "shafarik-ss05": shafarik_ss05}
 
 
 def copy(source: TTFont) -> TTFont:
@@ -368,6 +423,7 @@ def main() -> None:
     args.add_argument("--martel", required=True)
     args.add_argument("--idiqlat", required=True)
     args.add_argument("--coiny", required=True)
+    args.add_argument("--shafarik", required=True)
     args.add_argument("--extra", action="append", default=[], metavar="NAME=PATH",
                       help="a prebuilt font a scene or variant names, e.g. playwrite-before=pw.ttf")
     args.add_argument("--feanor", default="feanor")
@@ -375,7 +431,8 @@ def main() -> None:
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
     fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
-             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY)}
+             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY),
+             "shafarik": (TTFont(opts.shafarik), SHAFARIK)}
     for item in opts.extra:
         key, path = item.split("=", 1)
         fonts[key] = (TTFont(path), PLAYWRITE if key.startswith("playwrite") else path)

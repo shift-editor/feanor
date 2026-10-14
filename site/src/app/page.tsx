@@ -11,6 +11,7 @@ import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import fixedJoin from "@/scenes/fixed-join.json";
+import ligatureAddsLetter from "@/scenes/ligature-adds-letter.json";
 import unreachableImatra from "@/scenes/unreachable-imatra.json";
 import syriacNun from "@/scenes/syriac-nun.json";
 import unreachableRule from "@/scenes/unreachable-rule.json";
@@ -31,6 +32,7 @@ const CREDITS = [
   { name: "Inter", href: "https://github.com/rsms/inter" },
   { name: "Coiny", href: "https://github.com/marcelommp/Coiny" },
   { name: "Playwrite", href: "https://github.com/TypeTogether/Playwrite" },
+  { name: "Shafarik", href: "https://github.com/slavonic/Shafarik" },
   { name: "Martel", href: "https://github.com/typeoff/martel" },
   { name: "Idiqlat", href: "https://github.com/silnrsi/font-idiqlat" },
 ];
@@ -111,6 +113,13 @@ const SCENES = [
     data: fixedJoin,
     file: "calt.fea",
     found: "From a font's source history. Its designer fixed it in a later commit, in 2023.",
+  },
+  {
+    id: "ligature-adds-letter",
+    title: "A ligature that adds a letter",
+    data: ligatureAddsLetter,
+    file: "features.fea",
+    found: "From a font as it ships on Google Fonts. Its source was fixed in 2025, after it was reported.",
   },
   {
     id: "unreachable-imatra",
@@ -259,7 +268,7 @@ export default async function Home() {
             <p className="font-copy text-copy text-secondary">
               Most of what Feanor reports is clutter: rules that never run, classes nobody uses, the same kerning pair
               written twice. Some of it Feanor removes for you, safely. A few mistakes change the text itself. The first
-              four come from real fonts: one its designer found and fixed later, three still in the fonts as they
+              five come from real fonts: one its designer found and fixed later, four still in the fonts as they
               ship. The last is an illustration. Feanor flags each one as it&apos;s typed, in the editor and in CI. Every line is shaped by
               HarfBuzz, the engine in Chrome, Android and Figma.
             </p>
