@@ -64,17 +64,15 @@ export function RuleTable({ rules }: { rules: RuleRow[] }) {
         <div aria-hidden className={`${COLUMNS} py-2 text-[15px] font-medium`}>
           <span>Code</span>
           <span>Rule</span>
-          <span className="hidden text-center sm:block">
-            Severity
-          </span>
-          <span className="hidden text-center sm:block">
-            Fix
-          </span>
+          <span className="hidden text-center sm:block">Severity</span>
+          <span className="hidden text-center sm:block">Fix</span>
           <span />
         </div>
         {shown.map((r, i) => (
           <details key={r.code} className={`group rounded-md ${i % 2 === 0 ? "bg-stripe" : ""}`}>
-            <summary className={`${COLUMNS} cursor-pointer list-none py-2 text-[15px] [&::-webkit-details-marker]:hidden`}>
+            <summary
+              className={`${COLUMNS} cursor-pointer list-none py-2 text-[15px] [&::-webkit-details-marker]:hidden`}
+            >
               <span>
                 <span className="rounded bg-chrome px-1.5 py-0.5 font-mono text-[12px] text-primary">{r.code}</span>
               </span>

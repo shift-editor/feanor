@@ -89,7 +89,9 @@ body {
   a.card {
     top: 0;
     left: 0;
-    transition: top 120ms ease-out, left 120ms ease-out;
+    transition:
+      top 120ms ease-out,
+      left 120ms ease-out;
     @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent;
   }
   a.card:hover {
@@ -112,15 +114,34 @@ body {
   .button-quiet {
     @apply inline-flex h-7 cursor-pointer items-center rounded border border-line-subtle bg-surface-raised px-2.5 font-ui text-[12px] text-primary transition-colors duration-200 hover:bg-input focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none;
   }
-  .prose-rule h1 { @apply hidden; }
-  .prose-rule h2 { @apply mt-5 mb-1 font-ui text-xs font-medium tracking-[0.08em] text-muted uppercase; }
-  .prose-rule p, .prose-rule li { @apply font-copy text-[15px] leading-relaxed text-secondary; }
-  .prose-rule p { @apply my-2; }
-  .prose-rule ul { @apply my-2 list-disc pl-5; }
-  .prose-rule :not(pre) > code { @apply rounded bg-surface-muted px-1 py-0.5 font-mono text-[12px]; }
-  .prose-rule pre:not(.shiki) { @apply my-2 overflow-x-auto rounded-md bg-surface-raised p-3 font-mono text-[12px] leading-relaxed; }
-  .prose-rule pre:not(.shiki) code { @apply bg-transparent p-0; }
-  .prose-rule a { @apply text-accent underline; }
+  .prose-rule h1 {
+    @apply hidden;
+  }
+  .prose-rule h2 {
+    @apply mt-5 mb-1 font-ui text-xs font-medium tracking-[0.08em] text-muted uppercase;
+  }
+  .prose-rule p,
+  .prose-rule li {
+    @apply font-copy text-[15px] leading-relaxed text-secondary;
+  }
+  .prose-rule p {
+    @apply my-2;
+  }
+  .prose-rule ul {
+    @apply my-2 list-disc pl-5;
+  }
+  .prose-rule :not(pre) > code {
+    @apply rounded bg-surface-muted px-1 py-0.5 font-mono text-[12px];
+  }
+  .prose-rule pre:not(.shiki) {
+    @apply my-2 overflow-x-auto rounded-md bg-surface-raised p-3 font-mono text-[12px] leading-relaxed;
+  }
+  .prose-rule pre:not(.shiki) code {
+    @apply bg-transparent p-0;
+  }
+  .prose-rule a {
+    @apply text-accent underline;
+  }
 }
 
 /* Shiki output inside Code: keep the block's own surface and type */

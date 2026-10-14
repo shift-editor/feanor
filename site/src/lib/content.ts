@@ -35,7 +35,10 @@ export interface RuleDoc {
 
 function firstParagraph(markdown: string, heading: string): string {
   const after = markdown.split(`## ${heading}`)[1] ?? "";
-  return after.trim().split(/\n\s*\n/)[0].replace(/\s+/g, " ");
+  return after
+    .trim()
+    .split(/\n\s*\n/)[0]
+    .replace(/\s+/g, " ");
 }
 
 /** The rule pages in crates/feanor/rules, the same text `feanor rule` prints. */
@@ -49,7 +52,11 @@ export function ruleDocs(): RuleDoc[] {
       const severity = meta.match(/\*\*Severity:\*\*\s*([^·]+)/)?.[1].trim() ?? "";
       const fix = meta.match(/\*\*Fix:\*\*\s*(.+)$/)?.[1].trim() ?? "";
       const body = rest.join("\n").trim();
-      const example = body.split("## Example")[1]?.match(/```fea\n([\s\S]*?)```/)?.[1].trimEnd() ?? null;
+      const example =
+        body
+          .split("## Example")[1]
+          ?.match(/```fea\n([\s\S]*?)```/)?.[1]
+          .trimEnd() ?? null;
       return { code, name, severity, fix, summary: firstParagraph(body, "What it reports"), example, body };
     })
     .sort((a, b) => a.code.localeCompare(b.code));

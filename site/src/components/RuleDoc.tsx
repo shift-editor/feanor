@@ -4,7 +4,12 @@ import { highlight } from "@/lib/highlight";
 /** A ```fea fence in rule documentation, highlighted on the server. */
 export async function Fence({ code }: { code: string }) {
   const html = await highlight(code.replace(/\n$/, ""), "fea");
-  return <div className="code-block my-2 overflow-x-auto rounded-md bg-surface-raised p-3" dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <div
+      className="code-block my-2 overflow-x-auto rounded-md bg-surface-raised p-3"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 /** A rule's Markdown documentation, with its FEA examples highlighted. */

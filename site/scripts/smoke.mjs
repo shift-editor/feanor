@@ -24,7 +24,10 @@ await page.goto(url, { waitUntil: "networkidle" });
 
 // hero: lint markers appear once the WebAssembly module has loaded
 await page.waitForSelector(".cm-lintRange", { timeout: 15000 });
-const errorCount = await page.getByLabel(/^\d+ errors$/).first().getAttribute("aria-label");
+const errorCount = await page
+  .getByLabel(/^\d+ errors$/)
+  .first()
+  .getAttribute("aria-label");
 check(/^[1-9]\d* errors$/.test(errorCount ?? ""), `playground reports problems: "${errorCount}"`);
 
 // hero: Diff renders a diff, Format rewrites the editor
@@ -56,10 +59,15 @@ const duplicate = problems.filter({ hasText: "C002" }).first();
 await duplicate.getByRole("button").first().click();
 const opened = await duplicate.innerText();
 check(
-  (await duplicate.getByRole("button").first().getAttribute("aria-expanded")) === "true" && opened.includes("Remove the second"),
+  (await duplicate.getByRole("button").first().getAttribute("aria-expanded")) === "true" &&
+    opened.includes("Remove the second"),
   "a problem opens with its fix and rule summary",
 );
-await page.locator("#linting").getByRole("button", { name: /^Remove the second/ }).first().click();
+await page
+  .locator("#linting")
+  .getByRole("button", { name: /^Remove the second/ })
+  .first()
+  .click();
 await page.waitForTimeout(400);
 const after = await problems.count();
 check(after === before - 1, `safe fix removed one problem (${before} -> ${after})`);
@@ -86,7 +94,10 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   check(drawn === glyphs, `scene "${tab}" shows ${code} and draws ${drawn} glyphs`);
   check(/From a font/.test(await scene.innerText()), `scene "${tab}" says where it comes from`);
   await toggle(fixed).click();
-  check(!(await scene.locator(`span:visible:text-is("${code}")`).count()), `scene "${tab}" hides the diagnostic once fixed`);
+  check(
+    !(await scene.locator(`span:visible:text-is("${code}")`).count()),
+    `scene "${tab}" hides the diagnostic once fixed`,
+  );
 }
 
 // terminal: real captured sessions, one per tab
@@ -101,7 +112,10 @@ for (const tab of ["Lint", "Format", "CI", "Explain"]) {
 const fast = page.locator("#fast");
 await fast.getByText("Harmattan features.fea").first().hover();
 check(await fast.getByRole("tooltip").first().isVisible(), "chart tooltip shows on hover");
-check((await fast.locator(".sr-only table").first().textContent()).includes("65,379 lines"), "chart numbers available to screen readers");
+check(
+  (await fast.locator(".sr-only table").first().textContent()).includes("65,379 lines"),
+  "chart numbers available to screen readers",
+);
 
 // code samples are highlighted
 const coloured = await page.locator("#ci span[style*=color], #anywhere span[style*=color]").count();

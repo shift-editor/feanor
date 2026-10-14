@@ -161,7 +161,7 @@ export function HatchedBars({ title, series, rows, format, axis }: Props) {
 
       {/* the same numbers for screen readers (a table ignores sr-only, so wrap it) */}
       <div className="sr-only">
-      <table>
+        <table>
           <caption>{title}</caption>
           <thead>
             <tr className="border-b border-line">

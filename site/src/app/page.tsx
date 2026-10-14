@@ -201,7 +201,8 @@ export default async function Home() {
             changing the compiled font, and points out mistakes as you type, often with a fix.
           </p>
           <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-x-7 gap-y-4 pt-1">
-            <CopyCommand command="cargo install feanor-cli" />          </div>
+            <CopyCommand command="cargo install feanor-cli" />{" "}
+          </div>
         </div>
         <Playground initial={example("playground.fea")} glyphs={glyphs} />
       </section>
@@ -233,8 +234,8 @@ export default async function Home() {
           <p>
             Misspelled glyphs, classes that don&apos;t line up, invisible characters that arrived by copy-paste. Every
             diagnostic points at the exact text, explains itself, and often comes with a fix. Safe fixes clear away
-            clutter, like a glyph listed twice or a kerning pair that&apos;s ignored. Unsafe ones, like renaming a
-            glyph to the closest match, wait for you.
+            clutter, like a glyph listed twice or a kerning pair that&apos;s ignored. Unsafe ones, like renaming a glyph
+            to the closest match, wait for you.
           </p>
         }
       >
@@ -252,7 +253,7 @@ export default async function Home() {
               <code className="font-mono text-[14px]"># noqa</code> comment.
             </p>
           </div>
-        <RuleList rules={rules} />
+          <RuleList rules={rules} />
         </div>
       </Section>
 
@@ -261,10 +262,10 @@ export default async function Home() {
         title="Safe to run on any font"
         lede={
           <p>
-            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on
-            one line are packed to the line width, while classes you broke into rows keep your rows. Columns you
-            aligned by hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code
-            from real fonts.
+            Feanor changes spacing, indentation, line breaks and blank lines, and nothing else. Classes written on one
+            line are packed to the line width, while classes you broke into rows keep your rows. Columns you aligned by
+            hand stay aligned, and the file keeps its own indent and line endings. Try it on feature code from real
+            fonts.
           </p>
         }
       >
@@ -273,9 +274,9 @@ export default async function Home() {
           <div className="flex max-w-[62ch] flex-col gap-2">
             <h3 className="font-release-heading text-subheading">Checked on Google Fonts</h3>
             <p className="font-copy text-copy text-secondary">
-              For this release, Feanor formatted every feature file in the source repositories of Google Fonts
-              families, then compiled each one before and after with two independent compilers. The layout tables
-              came out identical.
+              For this release, Feanor formatted every feature file in the source repositories of Google Fonts families,
+              then compiled each one before and after with two independent compilers. The layout tables came out
+              identical.
             </p>
           </div>
           <dl className="grid gap-x-8 gap-y-10 pr-[9px] sm:grid-cols-3">
@@ -294,9 +295,9 @@ export default async function Home() {
         title="In your terminal"
         lede={
           <p>
-            The same checks on the command line: where each problem is, why it matters, and a fix when there is
-            one. The exit status tells CI whether to fail. This is real output from Feanor 0.3.0, run on the
-            examples from this page.
+            The same checks on the command line: where each problem is, why it matters, and a fix when there is one. The
+            exit status tells CI whether to fail. This is real output from Feanor 0.3.0, run on the examples from this
+            page.
           </p>
         }
       >
@@ -333,8 +334,8 @@ export default async function Home() {
         title="Fast enough to run on every keystroke"
         lede={
           <p>
-            Feanor lints or formats a 65,000-line feature file in a quarter of a second. In an editor, it re-checks
-            only the part you changed, so even the largest file re-checks in under 10 milliseconds per keystroke.
+            Feanor lints or formats a 65,000-line feature file in a quarter of a second. In an editor, it re-checks only
+            the part you changed, so even the largest file re-checks in under 10 milliseconds per keystroke.
           </p>
         }
       >

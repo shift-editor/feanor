@@ -164,7 +164,10 @@ function ShapingScene({ scene }: { scene: Scene }) {
       {code[w]}
       {w === "written" && diagnostic && (
         <div className="grid grid-cols-[0.5rem_minmax(0,1fr)] items-baseline gap-x-2.5 gap-y-1.5 rounded-md bg-stripe px-3 py-2.5 font-ui">
-          <span aria-label={diagnostic.severity} className={`size-2 -translate-y-px rounded-full ${DOT[diagnostic.severity]}`} />
+          <span
+            aria-label={diagnostic.severity}
+            className={`size-2 -translate-y-px rounded-full ${DOT[diagnostic.severity]}`}
+          />
           <p className="text-[14px] leading-snug text-primary">{diagnostic.message}</p>
           <span
             title={diagnostic.rule}
@@ -179,9 +182,7 @@ function ShapingScene({ scene }: { scene: Scene }) {
   );
 
   return (
-    <figure
-      className="grid gap-6 rounded-xl border border-line bg-surface-raised p-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
-    >
+    <figure className="grid gap-6 rounded-xl border border-line bg-surface-raised p-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
       {/* both versions share one grid cell, so the taller sets the height and toggling never shifts the layout */}
       <div className="grid min-w-0 [grid-template-areas:'stack']">
         {(["written", "meant"] as const).map((w) => (
@@ -319,4 +320,3 @@ function Word({
     </svg>
   );
 }
-
