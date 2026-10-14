@@ -59,6 +59,13 @@ version.
 - `format`: rows that line up without needing any padding are formatted as
   ordinary statements, not as a table.
 
+## 0.2.0 - 2026-10-13
+
+- `symbols`: where glyph classes, mark classes, and lookups are defined and used, and
+  where glyph names are written; `Symbols::at` finds the symbol under a cursor and
+  `Symbols::rename` returns the edits that rename a class or lookup everywhere
+- `Incremental::symbols`: the same for a document being edited
+
 ## 0.1.0 - 2026-10-13
 
 First release.

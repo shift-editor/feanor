@@ -228,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "feanor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fea-rs",
  "serde",
@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "feanor-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anstyle",
  "clap",
@@ -252,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "feanor-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "feanor",
  "js-sys",

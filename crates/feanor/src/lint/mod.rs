@@ -197,6 +197,8 @@ pub(crate) struct Facts {
     lookup_defs: Vec<(String, Range<usize>, bool)>,
     class_uses: Vec<(String, Range<usize>)>,
     lookup_uses: Vec<(String, Range<usize>)>,
+    /// Every glyph name written, without its escaping `\`, for [`crate::symbols()`].
+    glyph_uses: Vec<(String, Range<usize>)>,
     sub_pairs: Vec<SubPair>,
     /// Feature and lookup blocks, for the rules about what lookups do.
     blocks: Vec<lookups::Block>,
@@ -206,6 +208,50 @@ pub(crate) struct Facts {
     languagesystems: Vec<lookups::LanguageSystem>,
     /// Top-level feature blocks, for the order of `languagesystem` statements.
     feature_starts: Vec<lookups::FeatureStart>,
+}
+
+impl Facts {
+    /// Class definitions: name and the name's range.
+    pub(crate) fn class_definitions(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.class_defs
+            .iter()
+            .map(|(name, range, _)| (name.as_str(), range))
+    }
+
+    /// `markClass` statements: the class name and its range, once per statement.
+    pub(crate) fn mark_class_definitions(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.mark_classes
+            .iter()
+            .map(|(name, range)| (name.as_str(), range))
+    }
+
+    /// Lookup blocks: the label and its range.
+    pub(crate) fn lookup_definitions(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.lookup_defs
+            .iter()
+            .map(|(name, range, _)| (name.as_str(), range))
+    }
+
+    /// Uses of a class or mark class by name.
+    pub(crate) fn class_references(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.class_uses
+            .iter()
+            .map(|(name, range)| (name.as_str(), range))
+    }
+
+    /// `lookup Name;` references.
+    pub(crate) fn lookup_references(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.lookup_uses
+            .iter()
+            .map(|(name, range)| (name.as_str(), range))
+    }
+
+    /// Glyph names written in the text.
+    pub(crate) fn glyph_references(&self) -> impl Iterator<Item = (&str, &Range<usize>)> {
+        self.glyph_uses
+            .iter()
+            .map(|(name, range)| (name.as_str(), range))
+    }
 }
 
 /// A class definition: name, the name's range, and its members (None if not expandable).
@@ -265,6 +311,7 @@ pub(crate) fn analyze(source: &str, ctx: &LintOptions) -> Facts {
     duplicate_candidates(&items, &mut facts);
     class_facts(&items, source, ctx.glyphs, &mut facts);
     definition_facts(&items, &mut facts);
+    glyph_facts(&items, &mut facts);
     lookups::block_facts(&items, source, ctx.glyphs, &mut facts);
     report_bare_includes(source, &mut facts);
     facts
@@ -343,6 +390,19 @@ fn parse_diagnostic(
         );
     }
     Diagnostic::new(Rule::Syntax, severity, range, text)
+}
+
+fn glyph_facts(items: &[Item], facts: &mut Facts) {
+    for item in items {
+        let (Kind::GlyphName | Kind::GlyphNameOrRange) = item.kind else {
+            continue;
+        };
+        let text = item.text.unwrap_or_default();
+        let escaped = text.starts_with('\\');
+        let start = item.range.start + usize::from(escaped);
+        let name = text.trim_start_matches('\\').to_string();
+        facts.glyph_uses.push((name, start..item.range.end));
+    }
 }
 
 /// Combine the facts of every piece (with its byte offset) into diagnostics.
