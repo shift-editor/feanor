@@ -10,7 +10,7 @@
 //! for hints: glyph-class boundaries, the node a token belongs to, and which
 //! top-level items contain parse errors.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -698,6 +698,7 @@ fn layout_stmt(
     depth: usize,
     broken: &HashSet<u32>,
     kept: &HashSet<u32>,
+    items: &Items,
     break_by: bool,
     opts: &Settings,
 ) -> Vec<String> {
@@ -714,6 +715,11 @@ fn layout_stmt(
     let mut i = 0;
 
     while i < elems.len() {
+        if let Some(&len) = items.at.get(&i)
+            && (!items.pack || lay.width() + 1 + len > opts.width)
+        {
+            lay.flush(&inner);
+        }
         match &elems[i] {
             Elem::Comment {
                 text, nl_before, ..
@@ -852,6 +858,75 @@ fn fill_class(
     i
 }
 
+/// Where a long contextual rule may start a new line.
+#[derive(Default)]
+struct Items {
+    /// Element index of each glyph or class in the glyph sequence after the
+    /// first, up to `by` or `from`, with its width written on one line.
+    at: HashMap<usize, usize>,
+    /// Fill lines to the width (a run of plain glyphs) rather than one item a
+    /// line (a rule with bracketed classes).
+    pack: bool,
+    /// Width of the rule's first line before the first item, written on one line.
+    head: usize,
+}
+
+/// The [`Items`] of a contextual rule; none for other statements, and for
+/// `ignore` rules with several sequences.
+fn sequence_items(elems: &[Elem]) -> Items {
+    let toks: Vec<(usize, &Tok)> = elems
+        .iter()
+        .enumerate()
+        .filter_map(|(i, e)| match e {
+            Elem::Tok(t) => Some((i, t)),
+            _ => None,
+        })
+        .collect();
+    let contextual = toks.iter().any(|(_, t)| {
+        matches!(
+            t.parent,
+            Kind::BacktrackSequence | Kind::LookaheadSequence | Kind::ContextGlyphNode
+        )
+    });
+    if !contextual || toks.iter().any(|(_, t)| t.kind == Kind::Comma) {
+        return Items::default();
+    }
+    let end = toks
+        .iter()
+        .position(|(_, t)| matches!(t.kind, Kind::ByKw | Kind::FromKw))
+        .unwrap_or(toks.len());
+    let mut starts = Vec::new();
+    for k in 1..end {
+        let (_, t) = toks[k];
+        let (_, prev) = toks[k - 1];
+        let escaped = prev.kind == Kind::Backslash;
+        let starts_item = t.class.is_none()
+            && !escaped
+            && (t.open.is_some()
+                || matches!(
+                    t.kind,
+                    Kind::GlyphName | Kind::NamedGlyphClass | Kind::Cid | Kind::Backslash
+                ));
+        if starts_item && !matches!(prev.kind, Kind::SubKw | Kind::PosKw | Kind::RsubKw) {
+            starts.push(k);
+        }
+    }
+    let at = starts
+        .iter()
+        .enumerate()
+        .map(|(n, &k)| {
+            let next = starts.get(n + 1).copied().unwrap_or(end);
+            let item: Vec<&Tok> = toks[k..next].iter().map(|(_, t)| *t).collect();
+            (toks[k].0, render_flat(&item).chars().count())
+        })
+        .collect();
+    let pack = !toks[..end].iter().any(|(_, t)| t.open.is_some());
+    let first = starts.first().copied().unwrap_or(end);
+    let head_toks: Vec<&Tok> = toks[..first].iter().map(|(_, t)| *t).collect();
+    let head = render_flat(&head_toks).chars().count();
+    Items { at, pack, head }
+}
+
 /// What layout a class literal in one statement needs.
 struct ClassInfo {
     id: u32,
@@ -932,10 +1007,28 @@ fn render_code(
     let overflows = |lines: &[String]| lines.iter().any(|l| l.chars().count() > opts.width);
 
     let mut break_by = false;
-    let mut lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
+    let mut items = Items::default();
+    let mut lines = layout_stmt(elems, depth, &broken, &kept, &items, break_by, opts);
     if overflows(&lines) && !is_class_def {
-        break_by = true;
-        lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
+        // a contextual rule whose glyph sequence can't fit on one line reads best
+        // one glyph or class per line, with `by` after the last when it fits.
+        // Decided from the sequence alone, written unsplit, so every pass decides
+        // the same; and only when each item fits on its own line, since otherwise
+        // splitting the long class alone is more compact
+        let candidate = sequence_items(elems);
+        let base = opts.indent.chars().count() * depth;
+        let inner = base + opts.indent.chars().count();
+        let sequence = base + candidate.head + candidate.at.values().map(|l| l + 1).sum::<usize>();
+        let each_fits = base + candidate.head <= opts.width
+            && candidate.at.values().all(|&len| inner + len <= opts.width);
+        if !candidate.at.is_empty() && sequence > opts.width && each_fits {
+            items = candidate;
+            lines = layout_stmt(elems, depth, &broken, &kept, &items, break_by, opts);
+        }
+        if overflows(&lines) {
+            break_by = true;
+            lines = layout_stmt(elems, depth, &broken, &kept, &items, break_by, opts);
+        }
     }
     while overflows(&lines) {
         let candidate = classes
@@ -944,13 +1037,13 @@ fn render_code(
             .max_by_key(|c| c.flat_len);
         let Some(c) = candidate else { break };
         broken.insert(c.id);
-        lines = layout_stmt(elems, depth, &broken, &kept, break_by, opts);
+        lines = layout_stmt(elems, depth, &broken, &kept, &items, break_by, opts);
     }
     // once a class is a block, `by` may fit back on the rule's line; prefer
     // that, since the next pass starts with the block (its rows are kept)
     // and would lay the rule out this way
     if break_by && !overflows(&lines) {
-        let joined = layout_stmt(elems, depth, &broken, &kept, false, opts);
+        let joined = layout_stmt(elems, depth, &broken, &kept, &items, false, opts);
         if !overflows(&joined) {
             lines = joined;
         }
@@ -1213,6 +1306,7 @@ fn one_line_block<'a>(
                 open.depth,
                 &HashSet::new(),
                 &HashSet::new(),
+                &Items::default(),
                 false,
                 opts,
             );

@@ -79,11 +79,54 @@ fn keeps_a_block_on_one_line_only_when_the_author_did() {
 #[test]
 fn wraps_a_long_rule_before_by() {
     let src = format!(
+        "feature calt {{\n    sub {}' x by a_very_long_ligature_name;\n}} calt;\n",
+        "glyphname ".repeat(8).trim_end()
+    );
+    let out = fmt(&src);
+    assert!(
+        out.contains("x\n        by a_very_long_ligature_name;"),
+        "{out}"
+    );
+    assert_safe(&src);
+}
+
+#[test]
+fn wraps_a_long_run_of_glyphs_between_them() {
+    let src = format!(
         "feature calt {{\n    sub {}' x by y;\n}} calt;\n",
         "glyphname ".repeat(10).trim_end()
     );
+    assert_eq!(
+        fmt(&src),
+        "feature calt {\n    sub glyphname glyphname glyphname glyphname glyphname glyphname glyphname \
+         glyphname glyphname\n        glyphname' x by y;\n} calt;\n"
+    );
+    assert_safe(&src);
+}
+
+#[test]
+fn puts_each_class_of_a_long_contextual_rule_on_its_own_line() {
+    let class = "[@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc]";
+    let src = format!(
+        "feature calt {{\n    sub @lowerCon0 {class} {class} @lowerCon0' by @lowerCon1;\n}} calt;\n"
+    );
+    assert_eq!(
+        fmt(&src),
+        format!(
+            "feature calt {{\n    sub @lowerCon0\n        {class}\n        {class}\n        \
+             @lowerCon0' by @lowerCon1;\n}} calt;\n"
+        )
+    );
+    assert_safe(&src);
+}
+
+#[test]
+fn splits_a_class_only_when_its_own_line_is_too_long() {
+    let long = format!("[{}]", "glyphname.alt ".repeat(9).trim_end());
+    let src = format!("feature calt {{\n    sub a {long} b' by c;\n}} calt;\n");
     let out = fmt(&src);
-    assert!(out.contains("\n        by y;"), "{out}");
+    assert!(out.contains("    sub a [\n"), "{out}");
+    assert!(out.lines().all(|l| l.chars().count() <= 100), "{out}");
     assert_safe(&src);
 }
 

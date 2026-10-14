@@ -44,6 +44,17 @@ version.
   Files formatted by 0.1 don't change.
 - `format`: when a long rule needs a class split over lines, `by` stays on the
   rule's line if it fits there.
+- `format`: a contextual rule whose glyph sequence is too long for one line
+  puts each class on its own line, instead of splitting short classes
+  across lines; a run of single glyphs fills each line. A class is still
+  split when it can't fit on a line of its own.
+
+### Fixed
+
+- A bare `include` with no file in parentheses is reported as an error
+  instead of crashing (also in 0.1.0).
+- `format`: rows that line up without needing any padding are formatted as
+  ordinary statements, not as a table.
 
 ## 0.1.0 - 2026-10-13
 
