@@ -37,6 +37,7 @@ feanor fmt --check sources/*.fea      # exit with status 1 if any file would cha
 
 feanor lint features.fea --glyphs MyFont-Regular.ufo
 feanor lint features.fea --fix        # apply safe fixes
+feanor lint features.fea --fix --verify --glyphs MyFont-Regular.ufo   # only fixes that leave the font unchanged
 feanor lint features.fea --statistics # count diagnostics by rule
 
 feanor project sources/features.fea --all-builds   # lint a project and every #ifdef build
@@ -46,7 +47,8 @@ feanor rule G001                      # explain a rule
 ```
 
 Exit status is 0 when nothing is found, 1 when there are lint errors or
-unformatted files, and 2 when a file can't be read.
+unformatted files, and 2 when a file can't be read or `--verify` refused a
+change.
 
 ### Continuous integration
 
@@ -98,9 +100,29 @@ Formatting is idempotent: running it again changes nothing.
 | X001 | invisible-character | error | safe |
 | P001 | project | error | |
 
-Safe fixes never change what the font does, so `--fix` applies them
-automatically. Unsafe fixes change the font, such as renaming a glyph or a
-feature to a suggested name, and are only applied with `--unsafe-fixes`.
+Safe fixes are meant not to change what the font does, so `--fix` applies
+them automatically. Unsafe fixes change the font, such as renaming a glyph or
+a feature to a suggested name, and are only applied with `--unsafe-fixes`.
+
+### Verifying a change
+
+With `--verify`, `feanor lint --fix` and `feanor fmt` check each change before
+writing it. Both versions of the file are compiled with fea-rs into a
+stand-in font, every glyph a box with its own code point, and shaped:
+sequences built from the glyphs the change touches, with every feature on and
+then each feature alone, under each script and language the file registers.
+A fix that changes the output is left out, with the sequence that showed it:
+
+```console
+$ feanor lint features.fea --fix --unsafe-fixes --verify
+features.fea: not fixed: T001 unknown-feature-tag would change the font:
+a becomes a instead of a.sc (script DFLT, only smpc on)
+```
+
+Identical compiled tables prove a change is safe. Otherwise a sample of
+sequences is shaped, so passing means no difference was found. Verifying
+checks fea-rs's reading of the file, not fontTools'. It needs the file to
+compile: pass `--glyphs` when it uses glyph ranges.
 
 You can choose which rules run by code (`G001`), family (`C`), or name, using
 `--select` and `--ignore`, the configuration file, or a `# noqa` comment on

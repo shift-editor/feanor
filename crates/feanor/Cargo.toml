@@ -16,3 +16,14 @@ fea-rs = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 toml_edit = "0.23"
+# `verify`: compile into a stand-in font and shape it
+harfrust = { version = "0.13", optional = true }
+write-fonts = { version = "0.52", optional = true }
+
+[features]
+default = []
+verify = ["dep:harfrust", "dep:write-fonts"]
+
+[[test]]
+name = "verify"
+required-features = ["verify"]

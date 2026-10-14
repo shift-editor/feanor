@@ -13,6 +13,8 @@ $ feanor fmt --check sources/*.fea      # exit 1 if anything would change
 
 $ feanor lint features.fea --glyphs MyFont-Regular.ufo
 $ feanor lint features.fea --fix        # apply safe fixes
+$ feanor lint features.fea --fix --verify   # only fixes shown not to change the font
+$ feanor fmt --write --verify features.fea  # only if formatting doesn't change the font
 $ feanor lint features.fea --statistics
 
 $ feanor project sources/features.fea --all-builds   # follow includes, every #ifdef build
@@ -21,7 +23,8 @@ $ feanor rule G001                                    # explain a rule
 ```
 
 Exit status: 0 when nothing was found, 1 when something was (lint errors, or
-unformatted files with `--check`), 2 when a file couldn't be read.
+unformatted files with `--check`), 2 when a file couldn't be read or
+`--verify` refused a change.
 
 ## In GitHub Actions
 

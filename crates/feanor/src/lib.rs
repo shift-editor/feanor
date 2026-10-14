@@ -14,6 +14,8 @@
 //!   and used, and where glyph names are written, for go-to-definition,
 //!   find-references, and rename.
 //! - [`Config`] reads `feanor.toml`.
+//! - With the `verify` feature, [`verify::verify`] checks that two versions of
+//!   a file make a font behave the same, by compiling and shaping both.
 //!
 //! Every range is a byte range into the text given; [`LineIndex`] converts to
 //! the line and UTF-16 column that editors and the Language Server Protocol use.
@@ -39,6 +41,8 @@ mod incremental;
 mod lint;
 pub mod project;
 mod symbols;
+#[cfg(feature = "verify")]
+pub mod verify;
 
 pub use config::{Config, ConfigError, ParseError, SettingError};
 pub use diagnostic::{

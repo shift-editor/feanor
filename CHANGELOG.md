@@ -8,6 +8,15 @@ version.
 
 ## Unreleased
 
+### Added
+
+- `--verify` for `feanor lint --fix` and `feanor fmt`: compile the file
+  before and after into a stand-in font, shape the glyphs the change touches,
+  and leave out any change that makes the font behave differently, saying
+  which sequence showed it. `fmt --verify` takes `--glyphs`.
+- `feanor::verify`, behind the `verify` cargo feature, for the same check from
+  the library.
+
 ### Fixed
 
 - `C002` duplicate-glyph-in-class: the safe fix left a stray `\` behind when

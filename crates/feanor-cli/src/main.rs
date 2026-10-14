@@ -3,6 +3,7 @@
 mod dev;
 mod inputs;
 mod output;
+mod verify;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -42,6 +43,14 @@ enum Command {
         /// Show what formatting would change, as a unified diff.
         #[arg(long)]
         diff: bool,
+        /// Compile each file before and after formatting and check that the
+        /// font would behave the same; leave a file alone if not.
+        #[arg(long)]
+        verify: bool,
+        /// With --verify, the font's glyphs (a UFO, or one name per line), so
+        /// ranges like `a.sc - d.sc` compile.
+        #[arg(long, requires = "verify")]
+        glyphs: Option<PathBuf>,
         #[command(flatten)]
         style: StyleArgs,
     },
@@ -57,6 +66,10 @@ enum Command {
         /// With --fix, also apply unsafe fixes (renames to suggestions).
         #[arg(long, requires = "fix")]
         unsafe_fixes: bool,
+        /// With --fix, apply only fixes that leave what the font does
+        /// unchanged, checked by compiling and shaping before and after.
+        #[arg(long, requires = "fix")]
+        verify: bool,
     },
     /// Lint a whole project: a root file with its includes, or a .txt manifest of chunks.
     Project {
@@ -134,14 +147,24 @@ fn main() -> ExitCode {
             write,
             check,
             diff,
+            verify,
+            glyphs,
             style,
-        } => run_fmt(&files, write, check, diff, &style),
+        } => run_fmt(
+            &files,
+            write,
+            check,
+            diff,
+            verify.then_some(glyphs.as_deref()),
+            &style,
+        ),
         Command::Lint {
             files,
             lint,
             fix,
             unsafe_fixes,
-        } => run_lint(&files, &lint, fix, unsafe_fixes),
+            verify,
+        } => run_lint(&files, &lint, fix, unsafe_fixes, verify),
         Command::Project {
             root,
             lint,
@@ -210,17 +233,38 @@ fn run_fmt(
     write: bool,
     check: bool,
     diff: bool,
+    // `Some` to verify, with the --glyphs path if given
+    verify: Option<Option<&std::path::Path>>,
     style: &StyleArgs,
 ) -> Result<ExitCode, String> {
     let mut changed = 0;
     let mut unreadable = 0;
+    let mut rejected = 0;
     for path in files {
         let Some(Input { text, .. }) = read_input(path) else {
             unreadable += 1;
             continue;
         };
         let config = config_for(path, style.no_config)?;
-        let out = format(&text, &style_options(&config, style)?);
+        let mut out = format(&text, &style_options(&config, style)?);
+        if let Some(glyph_path) = verify.filter(|_| out.text != text) {
+            let glyph_path = glyph_path
+                .map(std::path::Path::to_path_buf)
+                .or(config.glyphs.clone());
+            let glyphs = glyph_path.as_deref().map(load_glyphs).transpose()?;
+            let refused = match verify::check(&text, &out.text, path, glyphs.as_ref()) {
+                Ok(()) => None,
+                Err(verify::Rejected::Changes(why)) => {
+                    Some(format!("it would change the font: {why}"))
+                }
+                Err(verify::Rejected::Unverifiable(why)) => Some(format!("can't verify, {why}")),
+            };
+            if let Some(why) = refused {
+                eprintln!("{}: not formatted: {why}", path.display());
+                rejected += 1;
+                out.text = text.clone();
+            }
+        }
         let differs = out.text != text;
         changed += usize::from(differs);
         match (write, check, diff) {
@@ -237,7 +281,7 @@ fn run_fmt(
     if check || diff {
         eprintln!("{changed} of {} file(s) would be reformatted", files.len());
     }
-    if unreadable > 0 {
+    if unreadable > 0 || rejected > 0 {
         return Ok(ExitCode::from(2));
     }
     Ok(found((check || diff) && changed > 0))
@@ -248,8 +292,10 @@ fn run_lint(
     args: &LintArgs,
     fix: bool,
     unsafe_fixes: bool,
+    verify: bool,
 ) -> Result<ExitCode, String> {
     let mut all: Vec<(String, String, Vec<Diagnostic>)> = Vec::new();
+    let mut refused_fixes = 0;
     let mut unreadable = 0;
     let t = Instant::now();
     for path in files {
@@ -278,7 +324,13 @@ fn run_lint(
             } else {
                 Applicability::Safe
             };
-            let fixed = apply_fixes(&text, &diags, allowed);
+            let fixed = if verify {
+                let (fixed, refused) = verify::fix(&text, &diags, allowed, path, glyphs.as_ref());
+                refused_fixes += refused;
+                fixed
+            } else {
+                apply_fixes(&text, &diags, allowed)
+            };
             if fixed != text {
                 std::fs::write(path, &fixed).map_err(|e| format!("{}: {e}", path.display()))?;
                 // report what's left
@@ -300,7 +352,7 @@ fn run_lint(
             t.elapsed().as_secs_f64() * 1000.0
         );
     }
-    if unreadable > 0 {
+    if unreadable > 0 || refused_fixes > 0 {
         return Ok(ExitCode::from(2));
     }
     Ok(found(errors > 0))
