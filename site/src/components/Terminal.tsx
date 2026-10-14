@@ -1,6 +1,7 @@
 "use client";
 
 import { Tabs } from "@base-ui/react/tabs";
+import { BookOpen, GitPullRequest, type LucideIcon, ScanSearch, WandSparkles } from "lucide-react";
 import { useState } from "react";
 import { TrafficLights } from "./Window";
 
@@ -23,6 +24,15 @@ const COLOURS: Record<number, string> = {
 };
 
 const DIRECTORY = "~/my-font";
+const BRANCH = "main";
+
+/** An icon for each tab, by session id. */
+const ICONS: Record<string, LucideIcon> = {
+  lint: ScanSearch,
+  format: WandSparkles,
+  ci: GitPullRequest,
+  explain: BookOpen,
+};
 
 interface Run {
   text: string;
@@ -51,14 +61,47 @@ function runs(text: string): Run[] {
   return out;
 }
 
-/** A zsh-style prompt; after a failed command the arrow is red and shows its exit status. */
+// Nerd Font glyphs (see src/fonts/SymbolsNerdFont-NOTICE.txt)
+const NF = {
+  arrow: "\ue0b0", // powerline separator
+  cap: "\ue0b6", // rounded left cap
+  folder: "\uf07c",
+  branch: "\uf418",
+  cross: "\uf00d",
+};
+
+/** A Nerd Font glyph, in the font that has it. */
+function Glyph({ char, color, bg }: { char: string; color?: string; bg?: string }) {
+  return (
+    <span aria-hidden style={{ fontFamily: "var(--font-nerd)", color, background: bg }}>
+      {char}
+    </span>
+  );
+}
+
+/**
+ * An oh-my-posh style powerline prompt, drawn with Nerd Font glyphs: the
+ * directory, the git branch, and the last command's exit status when it failed.
+ */
 function Prompt({ status }: { status?: number }) {
   const failed = status !== undefined && status !== 0;
+  const segments: { bg: string; icon: string; text: string }[] = [
+    { bg: "#0e7490", icon: NF.folder, text: DIRECTORY },
+    { bg: "#475569", icon: NF.branch, text: BRANCH },
+    ...(failed ? [{ bg: "#dc2626", icon: NF.cross, text: String(status) }] : []),
+  ];
   return (
     <span className="select-none">
-      <span className="font-semibold text-[#0e7490]">{DIRECTORY}</span>{" "}
-      {failed && <span className="text-[#dc2626]">{status} </span>}
-      <span className={failed ? "text-[#dc2626]" : "text-[#16a34a]"}>❯</span>{" "}
+      <Glyph char={NF.cap} color={segments[0].bg} />
+      {segments.map((s, i) => (
+        <span key={s.text}>
+          <span className="font-semibold text-white" style={{ background: s.bg }}>
+            {i > 0 && " "}
+            <Glyph char={s.icon} /> {s.text}{" "}
+          </span>
+          <Glyph char={NF.arrow} color={s.bg} bg={segments[i + 1]?.bg} />
+        </span>
+      ))}{" "}
     </span>
   );
 }
@@ -85,18 +128,24 @@ export function Terminal({ sessions }: { sessions: Session[] }) {
           aria-label="Commands"
           className="flex border-y border-line-subtle bg-[#ececec] text-[12px] select-none"
         >
-          {sessions.map((s, i) => (
-            <Tabs.Tab
-              key={s.id}
-              value={i}
-              className="flex-1 cursor-pointer truncate border-l border-line-subtle px-3 py-1.5 text-center text-muted outline-none first:border-l-0 hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset data-[active]:bg-white data-[active]:text-primary"
-            >
-              {s.label}
-            </Tabs.Tab>
-          ))}
+          {sessions.map((s, i) => {
+            const Icon = ICONS[s.id];
+            return (
+              <Tabs.Tab
+                key={s.id}
+                value={i}
+                className="flex-1 cursor-pointer truncate border-l border-line-subtle px-3 py-1.5 text-center text-muted outline-none first:border-l-0 hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset data-[active]:bg-white data-[active]:text-primary"
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  {Icon && <Icon aria-hidden className="size-3.5" />}
+                  {s.label}
+                </span>
+              </Tabs.Tab>
+            );
+          })}
         </Tabs.List>
       </Tabs.Root>
-      <pre className="max-h-[32rem] overflow-auto px-4 pt-3 pb-4 font-mono text-[13px] leading-[1.55] text-primary">
+      <pre className="max-h-[32rem] overflow-auto px-4 pt-3 pb-4 font-mono text-[13px] leading-[1.6] text-primary">
         <Prompt />
         <span>{session.command}</span>
         {"\n"}

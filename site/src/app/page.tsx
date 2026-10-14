@@ -397,6 +397,13 @@ export default async function Home() {
           </a>
           .
         </p>
+        <p>
+          Terminal prompt glyphs from{" "}
+          <a href="https://www.nerdfonts.com" className="text-primary hover:underline">
+            Nerd Fonts
+          </a>{" "}
+          (MIT), including icons from Font Awesome (SIL OFL 1.1) and Octicons (MIT).
+        </p>
       </footer>
     </div>
   );

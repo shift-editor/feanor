@@ -10,6 +10,8 @@ const mono = localFont({
   variable: "--font-paper-mono",
   fallback: ["ui-monospace", "monospace"],
 });
+// six glyphs from Symbols Nerd Font Mono for the terminal prompt: see src/fonts/SymbolsNerdFont-NOTICE.txt
+const nerd = localFont({ src: "../fonts/SymbolsNerdFontMono-subset.woff2", variable: "--font-nerd" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${mono.variable} ${inter.variable} ${dmSans.variable}`}>
+    <html lang="en" className={`${mono.variable} ${nerd.variable} ${inter.variable} ${dmSans.variable}`}>
       <head>
         {/* Shift's Adobe Fonts kit, for aktiv-grotesk headings as on shift.graphics */}
         <link rel="stylesheet" href="https://use.typekit.net/xvg1cxs.css" />
