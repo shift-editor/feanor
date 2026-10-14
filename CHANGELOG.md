@@ -6,6 +6,17 @@ All notable changes are listed here. The format follows
 the public interface: a rule is never renamed or renumbered within a major
 version.
 
+## Unreleased
+
+### Fixed
+
+- `C002` duplicate-glyph-in-class: the safe fix left a stray `\` behind when
+  removing an escaped name (`\uni0162`), so the file no longer compiled.
+- `C002` no longer reports duplicates in a class paired by index with another
+  (`sub @A by @B`, `sub [a b a] by [x y z]`, the contextual `sub c @A' by @B`,
+  reverse substitutions): removing
+  one would shift every pair after it, which is not a safe fix.
+
 ## 0.3.0 - 2026-10-14
 
 ### Added

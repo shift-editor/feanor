@@ -335,9 +335,9 @@ fn formats_with_a_configured_or_detected_indent() {
 // ------------------------------------------------------------------ linter
 
 const DEMO: &str = "languagesystem DFLT dflt;
-@lc = [a b c b];
+@lc = [a b c];
 @sc = [a.sc b.sc];
-@unused = [a];
+@unused = [a b a];
 lookup Never { sub a by b; } Never;
 feature smpc {
     sub @lc by @sc;
@@ -392,6 +392,32 @@ fn renames_are_unsafe_and_cleanups_are_safe() {
         applicability(Rule::UnknownFeatureTag),
         Applicability::Unsafe
     );
+}
+
+#[test]
+fn removing_an_escaped_duplicate_removes_its_backslash() {
+    let src = "@A = [\\a \\b \\a];\n";
+    let diags = lint(src, &plain());
+    let fixed = feanor::apply_fixes(src, &diags, Applicability::Safe);
+    assert_eq!(fixed, "@A = [\\a \\b];\n");
+}
+
+#[test]
+fn classes_paired_by_index_keep_their_duplicates() {
+    // removing a glyph from either class would shift every pair after it
+    let named = "@A = [a b a];\n@B = [x y z];\nfeature smcp {\n    sub @A by @B;\n} smcp;\n";
+    let inline = "feature smcp {\n    sub [a b a] by [x y z];\n} smcp;\n";
+    let contextual =
+        "@A = [a b a];\n@B = [x y z];\nfeature calt {\n    sub c @A' by @B;\n} calt;\n";
+    for src in [named, inline, contextual] {
+        assert!(
+            !rules(&lint(src, &plain())).contains(&Rule::DuplicateGlyphInClass),
+            "{src}"
+        );
+    }
+    // a class used as a set still reports its duplicate
+    let set = "@A = [a b a];\nfeature calt {\n    sub @A' c by d;\n} calt;\n";
+    assert!(rules(&lint(set, &plain())).contains(&Rule::DuplicateGlyphInClass));
 }
 
 #[test]

@@ -942,6 +942,35 @@ fn unknown_feature_tag(items: &[Item], out: &mut Vec<Diagnostic>) {
 
 /// Byte ranges on the replacement side of substitutions (`by …` / `from …`),
 /// where repeating a glyph is meaningful: `sub [Alphatonos Alpha] by [Alpha Alpha];`.
+/// Substitutions whose replacement is a class (`sub @A by @B;`, the contextual
+/// `sub x @A' by @B;`, reverse substitutions): the classes pair their glyphs
+/// by index, so none of them may lose one.
+fn paired_ranges(items: &[Item]) -> Vec<Range<usize>> {
+    items
+        .iter()
+        .enumerate()
+        .filter(|(_, x)| {
+            matches!(
+                x.kind,
+                Kind::GsubType1 | Kind::GsubType5 | Kind::GsubType6 | Kind::GsubType8
+            )
+        })
+        .filter(|(i, x)| {
+            let by = items[i + 1..]
+                .iter()
+                .take_while(|y| y.range.start < x.range.end)
+                .position(|y| y.kind == Kind::ByKw);
+            by.is_some_and(|b| {
+                items[i + 1 + b..]
+                    .iter()
+                    .take_while(|y| y.range.start < x.range.end)
+                    .any(|y| matches!(y.kind, Kind::GlyphClass | Kind::NamedGlyphClass))
+            })
+        })
+        .map(|(_, x)| x.range.clone())
+        .collect()
+}
+
 fn replacement_ranges(items: &[Item]) -> Vec<Range<usize>> {
     // items are in source order and these ranges never nest, so the list is sorted
     items
@@ -957,7 +986,11 @@ fn within_any(sorted: &[Range<usize>], r: &Range<usize>) -> bool {
 }
 
 fn duplicate_candidates(items: &[Item], facts: &mut Facts) {
-    let replacements = replacement_ranges(items);
+    // a class's order matters after `by` and `from`, and on both sides of a
+    // substitution whose replacement is a class: glyphs are paired by index
+    let mut replacements = replacement_ranges(items);
+    replacements.extend(paired_ranges(items));
+    replacements.sort_by_key(|r| r.start);
     let in_replacement = |r: &Range<usize>| within_any(&replacements, r);
     facts.replacement_classes.extend(
         items
@@ -986,25 +1019,30 @@ fn duplicate_candidates(items: &[Item], facts: &mut Facts) {
             .take_while(|x| x.range.start < class.range.end)
             .filter(|x| x.depth == depth);
         let mut prev_end = class.range.start + 1;
+        // an escaped name (`\\a`) is a backslash token and a name; they go together
+        let mut backslash: Option<usize> = None;
         for m in members {
             if !matches!(m.kind, Kind::GlyphName | Kind::GlyphNameOrRange) {
-                if !matches!(m.kind, Kind::Whitespace | Kind::Comment) {
+                if m.text == Some("\\") {
+                    backslash = Some(m.range.start);
+                } else if !matches!(m.kind, Kind::Whitespace | Kind::Comment) {
                     prev_end = m.range.end;
                 }
                 continue;
             }
+            let range = backslash.take().unwrap_or(m.range.start)..m.range.end;
             let name = m.text.unwrap_or_default().trim_start_matches('\\');
             match seen.get(name) {
                 Some(first) => {
                     let d = Diagnostic {
                         rule: Rule::DuplicateGlyphInClass,
                         severity: Severity::Warning,
-                        range: m.range.clone(),
+                        range: range.clone(),
                         message: format!("'{name}' is already in this class"),
                         fixes: vec![Fix::new(
                             format!("Remove the second '{name}'"),
                             vec![TextEdit {
-                                range: prev_end..m.range.end,
+                                range: prev_end..range.end,
                                 new_text: String::new(),
                             }],
                             Applicability::Safe,
@@ -1017,10 +1055,10 @@ fn duplicate_candidates(items: &[Item], facts: &mut Facts) {
                     facts.duplicates.push((defined_name.map(String::from), d));
                 }
                 None => {
-                    seen.insert(name, m.range.clone());
+                    seen.insert(name, range.clone());
                 }
             }
-            prev_end = m.range.end;
+            prev_end = range.end;
         }
     }
 }
