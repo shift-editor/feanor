@@ -69,7 +69,7 @@ const consequences = page.locator("#consequences");
 const scenes = [
   ["An i-matra that never reaches", "R001", "As shipped", 5],
   ["Kerning written twice", "R003", "As written", 5],
-  ["An exception that comes too late", "R001", "As written", 7],
+  ["An exception that comes too late", "R001", "As written", 11],
 ];
 for (const [tab, code, written, glyphs] of scenes) {
   await consequences.getByRole("tab", { name: tab }).click();
@@ -82,7 +82,9 @@ for (const [tab, code, written, glyphs] of scenes) {
   await scene.locator(`span:visible:text-is("${code}")`).first().waitFor({ timeout: 10000 });
   const drawn = await scene.locator("svg").first().locator("path").count();
   check(drawn === glyphs, `scene "${tab}" shows ${code} and draws ${drawn} glyphs`);
-  check((await scene.innerText()).includes("Google Fonts families"), `scene "${tab}" says where it was found`);
+  if (tab !== "An exception that comes too late") {
+    check((await scene.innerText()).includes("Google Fonts families"), `scene "${tab}" says where it was found`);
+  }
   await toggle("Fixed").click();
   check(!(await scene.locator(`span:visible:text-is("${code}")`).count()), `scene "${tab}" hides the diagnostic once fixed`);
 }

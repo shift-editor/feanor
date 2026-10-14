@@ -113,14 +113,13 @@ const SCENES = [
     data: duplicatePair,
     file: "kern.fea",
     pair: 0,
-    found: "Found in 4 Google Fonts families.",
+    found: "Found in 3 Google Fonts families.",
   },
   {
     id: "unreachable-rule",
     title: "An exception that comes too late",
     data: unreachableRule,
     file: "calt.fea",
-    found: "Found in 3 Google Fonts families.",
   },
 ];
 

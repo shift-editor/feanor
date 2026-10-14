@@ -49,14 +49,14 @@ SCENES = {
         "glyphs": ["T", "o", "k", "y"],
         "features": {"kern": True},
         "variants": {
-            # the designer corrected T o further down; compilers keep the first value
+            # a rough first value, corrected further down; compilers keep the first
             "written": {
                 "label": "As written",
-                "fea": "feature kern {\n    pos T o -180;\n    pos T y -80;\n    pos T o -60;\n} kern;\n",
+                "fea": "feature kern {\n    pos T o -60;\n    pos T y -175;\n    pos T o -250;\n} kern;\n",
             },
             "meant": {
                 "label": "Fixed",
-                "fea": "feature kern {\n    pos T y -80;\n    pos T o -60;\n} kern;\n",
+                "fea": "feature kern {\n    pos T y -175;\n    pos T o -250;\n} kern;\n",
                 "note": "The later value was the correction, so the first one goes. Feanor's automatic "
                 "fix removes the ignored line instead, which keeps the font as it ships.",
             },
@@ -64,18 +64,24 @@ SCENES = {
     },
     "unreachable-rule": {
         "font": "inter",
-        "text": "Lettuce",
-        "glyphs": ["L", "e", "t", "u", "c", "t.1"],
+        "text": "T-Rex x-Ray",
+        "glyphs": ["T", "R", "e", "x", "a", "y", "hyphen", "hyphen.case", "space"],
         "features": {"calt": True},
         "variants": {
-            # the exception comes after the rule it should stop
+            # the exception for a lowercase letter comes after the rule it should stop
             "written": {
                 "label": "As written",
-                "fea": "feature calt {\n    sub t' by t.1;\n    ignore sub t' t;\n} calt;\n",
+                "fea": "@upper = [R T];\n@lower = [a e x y];\n\nfeature calt {\n"
+                "    sub hyphen' @upper by hyphen.case;\n"
+                "    ignore sub @lower hyphen' @upper;\n} calt;\n",
+                "note": "A hyphen before a capital is raised to the middle of the capitals. The "
+                "exception for one after a lowercase letter never runs, so in x-Ray it floats above the x.",
             },
             "meant": {
                 "label": "Fixed",
-                "fea": "feature calt {\n    ignore sub t' t;\n    sub t' by t.1;\n} calt;\n",
+                "fea": "@upper = [R T];\n@lower = [a e x y];\n\nfeature calt {\n"
+                "    ignore sub @lower hyphen' @upper;\n"
+                "    sub hyphen' @upper by hyphen.case;\n} calt;\n",
                 "note": "The exception goes first. Within a lookup the first rule that matches wins, "
                 "so an ignore after the rule it should stop never runs.",
             },
