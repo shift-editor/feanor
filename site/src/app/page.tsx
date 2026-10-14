@@ -8,6 +8,8 @@ import { RuleList, RuleSummary } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
+import { type Session, Terminal } from "@/components/Terminal";
+import terminal from "@/terminal.json";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import fixedJoin from "@/scenes/fixed-join.json";
@@ -294,6 +296,20 @@ export default async function Home() {
         }
       >
         <SpeedCharts />
+      </Section>
+
+      <Section
+        id="terminal"
+        title="In your terminal"
+        lede={
+          <p>
+            The same checks on the command line: where each problem is, why it matters, and a fix when there is
+            one. The exit status tells CI whether to fail. This is real output from Feanor 0.3.0, run on the
+            examples from this page.
+          </p>
+        }
+      >
+        <Terminal sessions={terminal as Session[]} />
       </Section>
 
       <Section

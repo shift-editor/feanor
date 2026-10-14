@@ -89,6 +89,14 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   check(!(await scene.locator(`span:visible:text-is("${code}")`).count()), `scene "${tab}" hides the diagnostic once fixed`);
 }
 
+// terminal: real captured sessions, one per tab
+const terminal = page.locator("#terminal");
+for (const tab of ["Lint", "Format", "CI", "Explain"]) {
+  await terminal.getByRole("tab", { name: tab }).click();
+  const text = await terminal.locator("figure").innerText();
+  check(text.includes("$ feanor") && /exit status \d/.test(text), `terminal shows the ${tab} session`);
+}
+
 // speed: hatched charts with a tooltip on hover, numbers for screen readers
 const fast = page.locator("#fast");
 await fast.getByText("Harmattan features.fea").first().hover();
