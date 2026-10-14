@@ -100,12 +100,22 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   );
 }
 
-// terminal: real captured sessions in a terminal window, one per tab
+// terminal: the real CLI as WebAssembly, run by clicking each command
 const terminal = page.locator("#terminal");
-for (const tab of ["Lint", "Format", "CI", "Explain"]) {
-  await terminal.getByRole("tab", { name: tab }).click();
-  const text = await terminal.locator("pre").innerText();
-  check(/my-font[\s\S]*main[\s\S]*feanor /.test(text), `terminal shows the ${tab} session`);
+await terminal.scrollIntoViewIfNeeded();
+await terminal.locator("[data-state=ready]").waitFor({ timeout: 30000 });
+const expect = {
+  Lint: /C002 duplicate-glyph-in-class[\s\S]*exit status 1/,
+  Format: /\+\+\+ messy\.fea \(formatted\)[\s\S]*exit status 1/,
+  Fix: /exit status \d/,
+  CI: /::warning file=features\.fea[\s\S]*exit status 1/,
+  Explain: /# R003 duplicate-pair[\s\S]*exit status 0/,
+};
+for (const [tab, pattern] of Object.entries(expect)) {
+  await terminal.getByRole("button", { name: tab }).click();
+  await page.waitForTimeout(400);
+  const text = await terminal.locator("[data-transcript]").textContent();
+  check(pattern.test(text ?? ""), `terminal runs ${tab}`);
 }
 
 // speed: hatched charts with a tooltip on hover, numbers for screen readers

@@ -1,7 +1,8 @@
 SymbolsNerdFontMono-subset.woff2 is a subset of Symbols Nerd Font Mono 3.5.0
 (https://www.nerdfonts.com), Copyright (c) 2016 Ryan McIntyre, MIT License.
-It keeps six glyphs, used in the terminal prompt on the page:
+It keeps the glyphs used by the terminal on the page:
 
-- U+E0B0, U+E0B6  powerline separators (Nerd Fonts / Powerline Extra Symbols, MIT License)
-- U+F07C, U+F00D  folder open and times (Font Awesome by Fonticons, Inc., SIL Open Font License 1.1)
-- U+F418          git branch (Octicons by GitHub, Inc., MIT License)
+- U+E0B0, U+E0B4, U+E0B6  powerline separators (Nerd Fonts / Powerline Extra Symbols, MIT License)
+- U+F4D3, U+F418, U+F467, U+F422, U+F48F, U+F425, U+F407, U+F405
+                          Octicons: folder, git branch, x, search, paintbrush, tools,
+                          git pull request, book (Octicons by GitHub, Inc., MIT License)

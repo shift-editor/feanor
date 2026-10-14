@@ -1,7 +1,9 @@
 node_modules/
 .next/
 next-env.d.ts
-# copied from crates/feanor-wasm/pkg by scripts/sync-wasm.mjs
+# generated: scripts/sync-wasm.mjs and scripts/build-cli-wasm.sh
 src/wasm/
 public/feanor_bg.wasm
+public/ghostty-vt.wasm
 smoke.png
+public/feanor-cli.wasm

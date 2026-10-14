@@ -8,8 +8,7 @@ import { RuleList, RuleSummary } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
-import { type Session, Terminal } from "@/components/Terminal";
-import terminal from "@/terminal.json";
+import { type Command, Terminal } from "@/components/Terminal";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import fixedJoin from "@/scenes/fixed-join.json";
@@ -47,6 +46,15 @@ const STATS = [
   { value: "2,762", label: "feature files from the source repositories of Google Fonts families" },
   { value: "0", label: "files that compile differently after formatting, checked with fea-rs and fontTools" },
   { value: "2,749 / 2,749", label: "mistakes we planted in those files, each found at the right place" },
+];
+
+/** One-click commands for the terminal; icons are Octicons from the Nerd Font subset. */
+const COMMANDS: Command[] = [
+  { id: "lint", label: "Lint", icon: "\uf422", command: "feanor lint --glyphs glyphs.txt features.fea" },
+  { id: "format", label: "Format", icon: "\uf48f", command: "feanor fmt --diff messy.fea" },
+  { id: "fix", label: "Fix", icon: "\uf425", command: "feanor lint --fix features.fea" },
+  { id: "ci", label: "CI", icon: "\uf407", command: "feanor check --format github features.fea" },
+  { id: "explain", label: "Explain", icon: "\uf405", command: "feanor rule R003" },
 ];
 
 const CI = `name: Feature code
@@ -295,13 +303,20 @@ export default async function Home() {
         title="In your terminal"
         lede={
           <p>
-            The same checks on the command line: where each problem is, why it matters, and a fix when there is one. The
-            exit status tells CI whether to fail. This is real output from Feanor 0.3.0, run on the examples from this
-            page.
+            This is the Feanor command-line tool itself, compiled to WebAssembly and running in your browser, in a
+            terminal built on Ghostty&apos;s. Run a command from the tabs or type your own: the files are the examples
+            from this page, kept in memory, so a fix stays fixed until you reload.
           </p>
         }
       >
-        <Terminal sessions={terminal as Session[]} />
+        <Terminal
+          files={{
+            "features.fea": example("lint.fea"),
+            "messy.fea": example("playground.fea"),
+            "glyphs.txt": glyphs.join("\n") + "\n",
+          }}
+          commands={COMMANDS}
+        />
       </Section>
 
       <Section
@@ -402,7 +417,7 @@ export default async function Home() {
           <a href="https://www.nerdfonts.com" className="text-primary hover:underline">
             Nerd Fonts
           </a>{" "}
-          (MIT), including icons from Font Awesome (SIL OFL 1.1) and Octicons (MIT).
+          (MIT), including icons from Octicons (MIT).
         </p>
       </footer>
     </div>
