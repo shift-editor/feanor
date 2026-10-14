@@ -8,7 +8,6 @@ import { RuleList, RuleSummary } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
-import { MACHINE } from "@/lib/benchmarks";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import duplicateSubstitution from "@/scenes/duplicate-substitution.json";
@@ -21,6 +20,13 @@ const NAV = [
   { label: "Rules", href: "#rules" },
   { label: "CI", href: "#ci" },
   { label: "Docs", href: "https://docs.rs/feanor" },
+];
+
+/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold in the scenes. */
+const CREDITS = [
+  { name: "Inter", href: "https://github.com/rsms/inter" },
+  { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
+  { name: "Noto Nastaliq Urdu", href: "https://github.com/notofonts/nastaliq" },
 ];
 
 const NEXT = [
@@ -291,23 +297,32 @@ export default async function Home() {
 
       <footer className="flex flex-col gap-3 border-t border-line pt-6 font-copy text-xs text-muted">
         <p>
-          Feanor is open source under the MIT or Apache 2.0 licence, made by{" "}
+          Feanor is open source (MIT or Apache 2.0), made by{" "}
           <a href="https://shift.graphics" className="text-primary hover:underline">
             Shift
           </a>
-          , the open-source font editor. Source on{" "}
+          . Source on{" "}
           <a href={GITHUB} className="text-primary hover:underline">
             GitHub
           </a>
           .
         </p>
+        {/* the OFL asks for the copyright notice and licence wherever the fonts' sources are shown */}
         <p>
-          Example feature code: {examples.map((e) => e.credit).join(" ")} Shaping examples set in{" "}
-          {duplicatePair.font}, shaped by HarfBuzz.
-        </p>
-        <p>
-          Speeds measured on an {MACHINE}, release build, median of repeated runs, on feature code from Inter, Roboto,
-          Noto Nastaliq Urdu, Gentium and Harmattan.
+          Examples from{" "}
+          {CREDITS.map((c, i) => (
+            <span key={c.name}>
+              <a href={c.href} className="text-primary hover:underline">
+                {c.name}
+              </a>
+              {i < CREDITS.length - 2 ? ", " : i === CREDITS.length - 2 ? " and " : ""}
+            </span>
+          ))}
+          , © their authors, under the{" "}
+          <a href="https://openfontlicense.org" className="text-primary hover:underline">
+            SIL OFL 1.1
+          </a>
+          .
         </p>
       </footer>
     </div>
