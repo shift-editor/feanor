@@ -51,6 +51,10 @@ version.
 
 ### Fixed
 
+- Indent detection no longer picks an unusual unit from uneven nesting (a
+  file indented 3 spaces, then 8, was formatted with 5); a tab or up to four
+  spaces wins whenever the file uses one.
+
 - A bare `include` with no file in parentheses is reported as an error
   instead of crashing (also in 0.1.0).
 - `format`: rows that line up without needing any padding are formatted as

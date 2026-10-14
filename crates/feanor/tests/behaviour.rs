@@ -309,6 +309,9 @@ fn detects_the_files_indent_unit() {
     );
     assert_eq!(detect_indent("@a = [\n  b c\n];\n").as_deref(), Some("  "));
     assert_eq!(detect_indent("@a = [b];\n"), None);
+    // uneven nesting (3, then 8) doesn't make the unit 5
+    let uneven = "feature frac {\n   lookup A {\n        sub a by b;\n   } A;\n   lookup B {\n        sub c by d;\n   } B;\n} frac;\n";
+    assert_eq!(detect_indent(uneven).as_deref(), Some("   "));
 }
 
 #[test]

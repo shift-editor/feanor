@@ -1409,9 +1409,10 @@ pub fn glyph_map_with_file_names(
 }
 
 /// The indent unit a file already uses: the most common step in leading
-/// whitespace from a line ending in `{` or `[` to the line after it.
+/// whitespace from a line ending in `{` or `[` to the line after it. A tab or
+/// up to four spaces wins over a wider step whenever the file has one.
 pub fn detect_indent(source: &str) -> Option<String> {
-    let mut counts: std::collections::HashMap<String, usize> = Default::default();
+    let mut counts: HashMap<String, usize> = HashMap::new();
     let mut prev: Option<&str> = None;
     for line in source.lines() {
         if line.trim().is_empty() {
@@ -1426,6 +1427,12 @@ pub fn detect_indent(source: &str) -> Option<String> {
         }
         let code = line.split('#').next().unwrap_or("").trim_end();
         prev = (code.ends_with('{') || code.ends_with('[')).then_some(line);
+    }
+    // a wider step is two levels at once or uneven nesting (3, then 8, votes
+    // for 5), so it only counts when the file has no usual unit
+    let usual = |unit: &str| unit == "\t" || (unit.len() <= 4 && unit.bytes().all(|b| b == b' '));
+    if counts.keys().any(|u| usual(u)) {
+        counts.retain(|u, _| usual(u));
     }
     counts
         .into_iter()
