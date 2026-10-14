@@ -1,0 +1,41 @@
+# Releases: release-plz opens a release PR on every push to main that changes a
+# crate. Merging it publishes both crates to crates.io (feanor first) and tags
+# v<version>, which starts dist's release.yml: it builds the binaries and creates
+# the GitHub release from this version's CHANGELOG.md section.
+
+[workspace]
+# dist creates the GitHub release, with binaries
+git_release_enable = false
+# both crates share one version and one changelog
+changelog_update = false
+git_tag_enable = false
+pr_labels = ["release"]
+# new rules can fail CI that passed before, so a feature is a minor release
+features_always_increment_minor = true
+
+[[package]]
+name = "feanor-cli"
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+changelog_update = true
+changelog_path = "CHANGELOG.md"
+changelog_include = ["feanor"]
+
+[changelog]
+# a draft in the changelog's own style; edit it in the release PR before merging
+body = """
+
+## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {{ commit.message | split(pat="\n") | first | upper_first | trim }}\
+{% endfor %}
+{% endfor %}
+"""
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^fix", group = "<!-- 2 -->Fixed" },
+  { message = ".*", skip = true },
+]

@@ -1,0 +1,53 @@
+name: Release-plz
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # publish crates whose version isn't on crates.io yet, then tag v<version>
+  release:
+    if: github.repository_owner == 'shift-editor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # crates.io trusted publishing: a short-lived token, no stored secret
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          # a tag pushed with the default GITHUB_TOKEN wouldn't start release.yml
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  # open or update the release PR: version bump and a changelog draft
+  release-pr:
+    if: github.repository_owner == 'shift-editor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          # with the default GITHUB_TOKEN, CI wouldn't run on the release PR
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
