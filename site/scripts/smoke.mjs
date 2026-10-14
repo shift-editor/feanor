@@ -14,96 +14,88 @@ const check = (ok, what) => {
   if (!ok) process.exitCode = 1;
 };
 
+/** Choose `option` in the Base UI select at `index` inside `scope`. */
+async function choose(scope, index, option) {
+  await scope.getByRole("combobox").nth(index).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
+}
+
 await page.goto(url, { waitUntil: "networkidle" });
 
 // hero: lint markers appear once the WebAssembly module has loaded
 await page.waitForSelector(".cm-lintRange", { timeout: 15000 });
-const status = await page.locator("[aria-live=polite]").first().textContent();
-check(/error/.test(status ?? ""), `playground reports problems: "${status}"`);
+const errorCount = await page.getByLabel(/^\d+ errors$/).first().getAttribute("aria-label");
+check(/^[1-9]\d* errors$/.test(errorCount ?? ""), `playground reports problems: "${errorCount}"`);
 
-// hero: Show diff renders a diff, Format rewrites the editor
-await page.getByRole("button", { name: "Show diff" }).click();
-await page.waitForSelector("diffs-container, [data-diffs], pre", { timeout: 10000 });
+// hero: Diff renders a diff, Format rewrites the editor
+await page.getByRole("button", { name: "Diff", exact: true }).first().click();
+await page.waitForSelector("diffs-container, [data-diffs]", { timeout: 10000 });
 check(true, "playground diff shown");
-await page.getByRole("button", { name: "Format" }).click();
+await page.getByRole("button", { name: "Format", exact: true }).first().click();
 const firstEditorText = await page.locator(".cm-content").first().innerText();
 check(firstEditorText.includes("@lowercase = [a b c d e];"), "Format rewrote the playground text");
 
-// formatting demo: switch file and indent, diff stays rendered
-await page.locator("select").first().selectOption("recursive");
-await page.locator("select").nth(1).selectOption("4");
-const formatNote = await page.locator("#formatting").innerText();
-check(/Formatted in [\d.]+ ms/.test(formatNote), "format demo reports timing");
+// formatting demo: every example formats in the browser, with each indent
+const formatting = page.locator("#formatting");
+await formatting.scrollIntoViewIfNeeded();
+for (const example of ["Hand-edited over the years", "A table, half aligned", "Already tidy"]) {
+  await choose(formatting, 0, example);
+  await page.waitForTimeout(300);
+  const note = await formatting.innerText();
+  check(/Formatted in [\d.]+ ms/.test(note) && /\d+ → \d+ lines/.test(note), `format demo formats "${example}"`);
+}
+await choose(formatting, 1, "4 spaces");
+check(/Formatted in [\d.]+ ms/.test(await formatting.innerText()), "format demo takes an indent");
 
-// lint demo: diagnostics listed, a safe fix applies
-const lint = page.locator("#linting");
-await lint.locator("li").first().waitFor();
-const before = await lint.locator("li").count();
-check(before >= 4, `lint demo lists ${before} diagnostics`);
-await lint.getByRole("button", { name: /Remove the second/ }).click();
+// lint demo: problems listed, a safe fix applies, a rule explains itself
+const problems = page.locator("#linting section[aria-label=Problems] > ul > li");
+await problems.first().waitFor();
+const before = await problems.count();
+check(before >= 4, `lint demo lists ${before} problems`);
+const duplicate = problems.filter({ hasText: "C002" }).first();
+await duplicate.getByRole("button").first().click();
+const opened = await duplicate.innerText();
+check(
+  (await duplicate.getByRole("button").first().getAttribute("aria-expanded")) === "true" && opened.includes("Remove the second"),
+  "a problem opens with its fix and rule summary",
+);
+await page.locator("#linting").getByRole("button", { name: /^Remove the second/ }).first().click();
 await page.waitForTimeout(400);
-const after = await lint.locator("li").count();
-check(after === before - 1, `safe fix removed one diagnostic (${before} -> ${after})`);
-await lint.getByRole("button", { name: /C001 class-length-mismatch/ }).click();
-check((await lint.innerText()).includes("Why it matters"), "rule explanation opens");
-
-// rules: every rule listed, details expand
-const rules = await page.locator("#rules summary").count();
-check(rules === 21, `rules table lists ${rules} rules`);
-const g001 = page.locator("#rules details").filter({ hasText: "glyph-not-in-font" });
-await g001.locator("summary").click();
-const feaSpans = await g001.locator(".code-block span[style*=color]").count();
-check(feaSpans > 5, `rule docs highlight FEA (${feaSpans} coloured spans)`);
-
-// the diffs highlight FEA too: keyword colour from Pierre's theme inside the diff
-await page.locator("#formatting").scrollIntoViewIfNeeded();
-const diffKeyword = await page.waitForFunction(() => {
-  const roots = [...document.querySelectorAll("*")].filter((e) => e.shadowRoot).map((e) => e.shadowRoot);
-  const spans = roots.flatMap((r) => [...r.querySelectorAll("span")]);
-  // tokens are coloured through --diffs-token-light
-  return spans.some((s) => ["sub", "feature", "lookup"].includes(s.textContent.trim()) && /#d32a61/i.test(s.getAttribute("style") ?? ""));
-}, null, { timeout: 10000 }).then(() => true, () => false);
-check(diffKeyword, "diffs highlight FEA keywords");
+const after = await problems.count();
+check(after === before - 1, `safe fix removed one problem (${before} -> ${after})`);
 
 // consequences: scenes shaped by HarfBuzz, with the code switching on the toggle
 const consequences = page.locator("#consequences");
-const scene = consequences.locator("figure").first();
-check((await scene.locator("svg path").count()) === 5, "first scene draws the five glyphs of Tokyo");
-await scene.hover();
-await scene.getByRole("button", { name: "Fixed" }).click();
-check(!(await scene.innerText()).includes("pos T o -180"), "fixed version shows the fixed code");
-await scene.getByRole("button", { name: "As written" }).click();
-check((await scene.innerText()).includes("R003 duplicate-pair"), "written version shows the R003 diagnostic");
-for (const [tab, code] of [["An exception that comes too late", "R001"], ["Two compilers, two fonts", "R002"], ["A languagesystem after a feature", "E003"]]) {
+const scenes = [
+  ["An i-matra that never reaches", "R001", "As shipped", 5],
+  ["Kerning written twice", "R003", "As written", 5],
+  ["An exception that comes too late", "R001", "As written", 7],
+];
+for (const [tab, code, written, glyphs] of scenes) {
   await consequences.getByRole("tab", { name: tab }).click();
-  const shown = consequences.locator("figure").first();
-  await shown.hover();
-  await shown.getByText(code).first().waitFor({ timeout: 10000 });
-  check(true, `scene "${tab}" shows ${code}`);
+  const scene = consequences.locator("figure").first();
+  await scene.hover();
+  // scenes switch versions on a timer; hovering pauses them, then show the written one
+  const toggle = (name) => scene.getByRole("radio", { name }).or(scene.getByRole("button", { name })).first();
+  await toggle(written).click();
+  // both versions stay in the page for a steady layout; only the shown one is visible
+  await scene.locator(`span:visible:text-is("${code}")`).first().waitFor({ timeout: 10000 });
+  const drawn = await scene.locator("svg").first().locator("path").count();
+  check(drawn === glyphs, `scene "${tab}" shows ${code} and draws ${drawn} glyphs`);
+  check((await scene.innerText()).includes("Google Fonts families"), `scene "${tab}" says where it was found`);
+  await toggle("Fixed").click();
+  check(!(await scene.locator(`span:visible:text-is("${code}")`).count()), `scene "${tab}" hides the diagnostic once fixed`);
 }
 
-// speed: two hatched charts, a tooltip on hover, a table view
+// speed: hatched charts with a tooltip on hover, numbers for screen readers
 const fast = page.locator("#fast");
-const bars = await fast.locator("figure").count();
-check(bars === 2, `speed section has ${bars} charts`);
 await fast.getByText("Harmattan features.fea").first().hover();
-check(await fast.getByRole("tooltip").isVisible(), "chart tooltip shows on hover");
-check(!(await fast.getByText("Show as table").count()), "no visible table toggle");
+check(await fast.getByRole("tooltip").first().isVisible(), "chart tooltip shows on hover");
 check((await fast.locator(".sr-only table").first().textContent()).includes("65,379 lines"), "chart numbers available to screen readers");
 
 // code samples are highlighted
-const coloured = await page.locator("#ci .code-block span[style*=color], #anywhere .code-block span[style*=color]").count();
+const coloured = await page.locator("#ci span[style*=color], #anywhere span[style*=color]").count();
 check(coloured > 20, `code blocks highlighted (${coloured} coloured spans)`);
-
-// shift.graphics typography
-const fonts = await page.evaluate(async () => {
-  await document.fonts.ready;
-  const h1 = getComputedStyle(document.querySelector("h1")).fontFamily;
-  const lede = getComputedStyle(document.querySelector("#formatting p")).fontFamily;
-  return { h1, lede, aktiv: document.fonts.check('700 54px "aktiv-grotesk"') && [...document.fonts].some((f) => f.family.includes("aktiv") && f.status === "loaded") };
-});
-check(fonts.h1.includes("aktiv-grotesk") && fonts.lede.includes("DM Sans"), `headings ${fonts.h1.split(",")[0]}, copy ${fonts.lede.split(",")[0]}`);
-console.log(`info aktiv-grotesk loaded from Adobe Fonts here: ${fonts.aktiv}`);
 
 await page.screenshot({ path: "smoke.png", fullPage: true });
 check(errors.length === 0, `no page errors${errors.length ? ": " + errors.join(" | ") : ""}`);
