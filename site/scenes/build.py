@@ -12,8 +12,12 @@ compiled tables (`patch`), and the code shown is an excerpt of its source.
 
 Martel Bold (for the i-matra scene) is
 https://github.com/google/fonts/raw/main/ofl/martel/Martel-Bold.ttf
-and Idiqlat Regular (for the Syriac scene) is
+Idiqlat Regular (for the Syriac scene) is
 https://github.com/google/fonts/raw/main/ofl/idiqlat/Idiqlat-Regular.ttf
+Coiny Regular (for the kerning scene) is
+https://github.com/google/fonts/raw/main/ofl/coiny/Coiny-Regular.ttf
+and Playwrite GBJ (for the joining scene) is
+https://github.com/google/fonts/raw/main/ofl/playwritegbj/PlaywriteGBJ%5Bwght%5D.ttf
 
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
@@ -21,6 +25,8 @@ Usage (from site/):
       --inter "$(nix build --no-link --print-out-paths nixpkgs#inter)/share/fonts/truetype/InterVariable.ttf" \\
       --martel Martel-Bold.ttf \\
       --idiqlat Idiqlat-Regular.ttf \\
+      --coiny Coiny-Regular.ttf \\
+      --playwrite "PlaywriteGBJ[wght].ttf" \\
       --feanor ../target/release/feanor
 
 Writes src/scenes/<scene>.json.
@@ -35,6 +41,7 @@ import tempfile
 
 import uharfbuzz as hb
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.subset import Options, Subsetter
 from fontTools.ttLib import TTFont
@@ -46,24 +53,34 @@ INTER = "Inter Bold, © 2016 The Inter Project Authors, SIL Open Font License 1.
 MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL Open Font License 1.1"
 IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
            "SIL Open Font License 1.1")
+COINY = "Coiny Regular, © 2015 Marcelo Magalhaes, SIL Open Font License 1.1"
+PLAYWRITE = "Playwrite GBJ, © 2023 The Playwrite Project Authors, SIL Open Font License 1.1"
 
 SCENES = {
     "duplicate-pair": {
-        "font": "inter",
-        "text": "Tokyo",
-        "glyphs": ["T", "o", "k", "y"],
-        "features": {"kern": True},
+        "font": "coiny",
+        # the font as it ships: its kern feature lists three pairs twice, with different values
+        "shipped": True,
+        "text": "Face",
+        "glyphs": ["F", "a"],
+        "focus": [0, 1],
+        "features": {},
         "variants": {
-            # a rough first value, corrected further down; compilers keep the first
+            # an excerpt of the source's kern feature
             "written": {
-                "label": "As written",
-                "fea": "feature kern {\n    pos T o -60;\n    pos T y -175;\n    pos T o -250;\n} kern;\n",
+                "label": "As shipped",
+                "fea": "feature kern {\n    pos F a -30;\n    pos F a -55;\n    pos F c -55;\n    pos F c -40;\n"
+                "    pos F e -55;\n    pos F e -37;\n} kern;\n",
+                "note": "Each pair is written twice, a line apart, with two values. Compilers keep the "
+                "first and ignore the second, so F a ships at -30.",
             },
             "meant": {
-                "label": "Fixed",
-                "fea": "feature kern {\n    pos T y -175;\n    pos T o -250;\n} kern;\n",
-                "note": "The later value was the correction, so the first one goes. Feanor's automatic "
-                "fix removes the ignored line instead, which keeps the font as it ships.",
+                "label": "Later values",
+                "patch": "later-pairs",
+                "fea": "feature kern {\n    pos F a -55;\n    pos F c -40;\n    pos F e -37;\n} kern;\n",
+                "note": "With the later values, F a closes up by 25 units. Only the designer knows which "
+                "value was meant; Feanor's automatic fix removes the ignored line, which keeps the font "
+                "as it ships.",
             },
         },
     },
@@ -121,6 +138,7 @@ SCENES = {
         # the font as it ships: its own GPOS spaces nun from a vowel below the alaph
         "shipped": True,
         "text": "ܐܷܢ ܐܸܢ",
+        "rtl": True,
         "features": {},
         "variants": {
             # an excerpt of the source; the real class lists 18 marks below
@@ -141,6 +159,29 @@ SCENES = {
                 "feature kern {\n    pos alaph-syriac @below\n        nun-syriac.cv18' lookup kern_nun_1;\n} kern;\n",
                 "note": "The rule marks the form the nun has at that point, and the lookup's 405 units "
                 "clear the vowel.",
+            },
+        },
+    },
+    "unreachable-join": {
+        "font": "playwrite",
+        # the font as it ships: the e drawn to follow this f never appears
+        "shipped": True,
+        "text": "feel",
+        "focus": [0, 4],
+        "features": {},
+        "variants": {
+            # an excerpt of the source; the real classes list more letters
+            "written": {
+                "label": "As shipped",
+                "fea": "feature calt {\n    sub [b.jmc.ini b.jmc.med f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_n_ e.mod.fin_n_];\n    sub [f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_b_ e.mod.fin_b_];\n} calt;\n",
+                "note": "The first rule picks the e that follows most joining letters, and its class "
+                "includes this f. So the e drawn to follow the f, with a rounder eye, never appears.",
+            },
+            "meant": {
+                "label": "Fixed",
+                "patch": "f-e-first",
+                "fea": "feature calt {\n    sub [f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_b_ e.mod.fin_b_];\n    sub [b.jmc.ini b.jmc.med f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_n_ e.mod.fin_n_];\n} calt;\n",
+                "note": "The rule for f goes first, and the e after it takes the form drawn for it.",
             },
         },
     },
@@ -218,7 +259,51 @@ def nun_cv18(font: TTFont) -> None:
     raise SystemExit("the nun rule wasn't found in this font's GPOS")
 
 
-PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18}
+def later_pairs(font: TTFont) -> None:
+    """Drop the first of each pair the kern lookup lists twice, so the later value applies."""
+    dropped = 0
+    for lookup in font["GPOS"].table.LookupList.Lookup:
+        if lookup.LookupType != 2:
+            continue
+        for subtable in lookup.SubTable:
+            if subtable.Format != 1:
+                continue
+            for pairs in subtable.PairSet:
+                records = pairs.PairValueRecord
+                later = {r.SecondGlyph: i for i, r in enumerate(records)}
+                kept = [r for i, r in enumerate(records) if later[r.SecondGlyph] == i]
+                dropped += len(records) - len(kept)
+                pairs.PairValueRecord = kept
+                pairs.PairValueCount = len(kept)
+    if not dropped:
+        raise SystemExit("no pair is listed twice in this font's GPOS")
+
+
+def f_e_first(font: TTFont) -> None:
+    """Move the rule for e after f.jmc ahead of the general rule for e after joining letters."""
+    gsub = font["GSUB"].table
+    for lookup in gsub.LookupList.Lookup:
+        if lookup.LookupType != 6:
+            continue
+        general = specific = None
+        for i, st in enumerate(lookup.SubTable):
+            if st.Format != 3 or not st.BacktrackCoverage:
+                continue
+            if not {"e.mod.med", "e.mod.fin"} <= set(st.InputCoverage[0].glyphs):
+                continue
+            before = set(st.BacktrackCoverage[0].glyphs)
+            if {"f.jmc.ini", "b.jmc.ini"} <= before:
+                general = i
+            elif before == {"f.jmc.ini", "f.jmc.med"}:
+                specific = i
+        if general is not None and specific is not None:
+            assert general < specific, "the specific rule already comes first"
+            lookup.SubTable.insert(general, lookup.SubTable.pop(specific))
+            return
+    raise SystemExit("the e rules weren't found in this font's calt")
+
+
+PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18, "later-pairs": later_pairs, "f-e-first": f_e_first}
 
 
 def copy(source: TTFont) -> TTFont:
@@ -276,22 +361,41 @@ def shape(font: TTFont, text: str, features: dict, script: str | None) -> list[d
     return out
 
 
+def focus(fonts: dict, variants: dict, first: int, last: int) -> list[float]:
+    """The extent of glyphs `first` to `last` in every version, in font units:
+    left, right, bottom, top."""
+    xs, ys = [], []
+    for key, variant in variants.items():
+        glyph_set = fonts[key].getGlyphSet()
+        for g in variant["glyphs"][first : last + 1]:
+            pen = BoundsPen(glyph_set)
+            glyph_set[g["name"]].draw(pen)
+            if pen.bounds:
+                xs += [g["x"] + pen.bounds[0], g["x"] + pen.bounds[2]]
+                ys += [g["y"] + pen.bounds[1], g["y"] + pen.bounds[3]]
+    return [min(xs), max(xs), min(ys), max(ys)]
+
+
 def main() -> None:
     args = argparse.ArgumentParser()
     args.add_argument("--inter", required=True)
     args.add_argument("--martel", required=True)
     args.add_argument("--idiqlat", required=True)
+    args.add_argument("--coiny", required=True)
+    args.add_argument("--playwrite", required=True)
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
     fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
-             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT)}
+             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY),
+             "playwrite": (TTFont(opts.playwrite), PLAYWRITE)}
     OUT.mkdir(parents=True, exist_ok=True)
 
     for name, scene in SCENES.items():
         source, credit = fonts[scene["font"]]
         variants = {}
+        fonts_used = {}
         for key, variant in scene["variants"].items():
             fea = variant["fea"]
             if "languagesystem" not in fea:
@@ -306,6 +410,7 @@ def main() -> None:
                     compile_with_fea_rs(font, fea, opts.feanor)
                 else:
                     compile_with_fontTools(font, fea)
+            fonts_used[key] = font
             variants[key] = {
                 "label": variant["label"],
                 "note": variant.get("note", ""),
@@ -319,10 +424,20 @@ def main() -> None:
             "widths": {g: hmtx[g][0] for g in scene.get("glyphs", []) if g in hmtx.metrics},
             "unitsPerEm": source["head"].unitsPerEm,
             "ascender": hhea.ascent,
-            "descender": hhea.descent,
+            # some fonts store the descender as a positive number
+            "descender": -abs(hhea.descent),
             "font": credit,
             **variants,
         }
+        if scene.get("rtl"):
+            # right to left: both versions end at the same place, where the text starts
+            ends = {k: v["glyphs"][-1]["x"] + v["glyphs"][-1]["advance"] for k, v in variants.items()}
+            for k, v in variants.items():
+                for g in v["glyphs"]:
+                    g["x"] += max(ends.values()) - ends[k]
+            result["rtl"] = True
+        if "focus" in scene:
+            result["focus"] = focus(fonts_used, variants, *scene["focus"])
         (OUT / f"{name}.json").write_text(json.dumps(result, indent=1) + "\n")
         summary = {k: " ".join(g["name"] for g in v["glyphs"]) for k, v in variants.items()}
         print(f"{name}: {summary}")

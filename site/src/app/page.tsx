@@ -12,6 +12,7 @@ import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import unreachableImatra from "@/scenes/unreachable-imatra.json";
 import syriacNun from "@/scenes/syriac-nun.json";
+import unreachableJoin from "@/scenes/unreachable-join.json";
 import unreachableRule from "@/scenes/unreachable-rule.json";
 
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -28,6 +29,8 @@ const CREDITS = [
   { name: "Zilla Slab", href: "https://github.com/mozilla/zilla-slab" },
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
   { name: "Inter", href: "https://github.com/rsms/inter" },
+  { name: "Coiny", href: "https://github.com/marcelommp/Coiny" },
+  { name: "Playwrite", href: "https://github.com/TypeTogether/Playwrite" },
   { name: "Martel", href: "https://github.com/typeoff/martel" },
   { name: "Idiqlat", href: "https://github.com/silnrsi/font-idiqlat" },
 ];
@@ -120,9 +123,16 @@ const SCENES = [
     id: "duplicate-pair",
     title: "Kerning written twice",
     data: duplicatePair,
-    file: "kern.fea",
+    file: "features.fea",
     pair: 0,
-    found: "Found in 3 Google Fonts families.",
+    found: "From a font as it ships. Found in 3 Google Fonts families.",
+  },
+  {
+    id: "unreachable-join",
+    title: "A join drawn but never used",
+    data: unreachableJoin,
+    file: "calt.fea",
+    found: "From a font as it ships.",
   },
   {
     id: "unreachable-rule",

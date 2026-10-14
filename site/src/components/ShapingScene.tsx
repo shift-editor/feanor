@@ -33,6 +33,10 @@ export interface SceneData {
   font: string;
   written: Variant;
   meant: Variant;
+  /** The extent to zoom to when the difference is small: left, right, bottom, top, in font units. */
+  focus?: number[];
+  /** Right to left: the versions line up at the right, and spacing is read from there. */
+  rtl?: boolean;
 }
 
 type Which = "written" | "meant";
@@ -55,6 +59,28 @@ const CHANGED: Record<Which, string> = { written: "#d97706", meant: "#0c92f4" };
 const SWITCH_EVERY_MS = 2600;
 // Shift's problem colours, as in the lint demo
 const DOT = { error: "bg-[#dc2626]", warning: "bg-[#f97316]", hint: "bg-[#9f9f9f]" } as const;
+
+const other = (w: Which): Which => (w === "written" ? "meant" : "written");
+
+/**
+ * Glyphs of `which` whose spacing from the glyph before them, in reading order,
+ * differs in the other version (same glyphs, moved). Glyphs that only shift
+ * along with an earlier one aren't counted.
+ */
+function moved(data: SceneData, which: Which): Set<number> {
+  const here = data[which].glyphs;
+  const there = data[other(which)].glyphs;
+  const step = data.rtl ? 1 : -1;
+  const out = new Set<number>();
+  here.forEach((g, i) => {
+    const before = i + step;
+    if (!there[i] || before < 0 || before >= here.length) return;
+    const dx = g.x - here[before].x;
+    const dy = g.y - here[before].y;
+    if (dx !== there[i].x - there[before].x || dy !== there[i].y - there[before].y) out.add(i);
+  });
+  return out;
+}
 
 /** Glyphs of `which` that the other version doesn't have at the same place. */
 function changed(data: SceneData, which: Which): Set<number> {
@@ -132,11 +158,13 @@ function ShapingScene({ scene }: { scene: Scene }) {
     const g = data[w].glyphs;
     return g[g.length - 1].x + g[g.length - 1].advance;
   };
-  const width = Math.max(end("written"), end("meant"));
-  const pad = data.unitsPerEm * 0.08;
-  const total = width + 2 * pad;
-  const viewBox = `${-pad} ${-data.ascender} ${total} ${data.ascender - data.descender}`;
-  const toPercent = (x: number) => `${((x + pad) / total) * 100}%`;
+  const pad = data.unitsPerEm * (data.focus ? 0.15 : 0.08);
+  const [from, to] = data.focus ?? [0, Math.max(end("written"), end("meant"))];
+  const left = from - pad;
+  const total = to - from + 2 * pad;
+  const [bottom, top] = data.focus ? [data.focus[2] - pad, data.focus[3] + pad] : [data.descender, data.ascender];
+  const viewBox = `${left} ${-top} ${total} ${top - bottom}`;
+  const toPercent = (x: number) => `${((x - left) / total) * 100}%`;
   // the same glyphs in both versions only move; different glyphs crossfade
   const names = (w: Which) => data[w].glyphs.map((g) => g.name).join(" ");
   const sameGlyphs = names("written") === names("meant");
@@ -203,12 +231,18 @@ function ShapingScene({ scene }: { scene: Scene }) {
               aria-label={`${data.text}, ${variant.label}`}
               className="relative block w-full"
             >
+              {[...moved(data, other(which))].map((i) => (
+                <Ghost key={`ghost-${i}`} glyph={data[other(which)].glyphs[i]} color={CHANGED[other(which)]} />
+              ))}
               {variant.glyphs.map((g, i) => (
                 <path
                   key={i}
                   d={g.d}
-                  className="fill-primary transition-transform duration-700 ease-in-out"
-                  style={{ transform: `translate(${g.x}px, ${-g.y}px) scale(1, -1)` }}
+                  className="fill-primary transition-[transform,fill] duration-700 ease-in-out"
+                  style={{
+                    transform: `translate(${g.x}px, ${-g.y}px) scale(1, -1)`,
+                    ...(moved(data, which).has(i) && { fill: CHANGED[which] }),
+                  }}
                 />
               ))}
             </svg>
@@ -220,6 +254,8 @@ function ShapingScene({ scene }: { scene: Scene }) {
                   glyphs={data[w].glyphs}
                   changed={changed(data, w)}
                   color={CHANGED[w]}
+                  ghosts={[...changed(data, other(w))].map((i) => data[other(w)].glyphs[i])}
+                  ghostColor={CHANGED[other(w)]}
                   viewBox={viewBox}
                   label={`${data.text}, ${data[w].label}`}
                   visible={w === which}
@@ -247,7 +283,9 @@ function ShapingScene({ scene }: { scene: Scene }) {
             </span>
           )}
         </div>
-        {scene.found && <p className="font-copy text-xs text-muted">{scene.found}</p>}
+        <p className="font-copy text-xs text-muted">
+          Dashed outline: {data[other(which)].label.toLowerCase()}.{scene.found && ` ${scene.found}`}
+        </p>
       </div>
     </figure>
   );
@@ -277,10 +315,14 @@ function Word({
   label,
   visible,
   stacked,
+  ghosts,
+  ghostColor,
 }: {
   glyphs: ShapedGlyph[];
   changed: Set<number>;
   color: string;
+  ghosts: ShapedGlyph[];
+  ghostColor: string;
   viewBox: string;
   label: string;
   visible: boolean;
@@ -296,6 +338,9 @@ function Word({
       className={`block w-full text-primary transition-opacity duration-500 ease-in-out ${placement}`}
       style={{ opacity: visible ? 1 : 0 }}
     >
+      {ghosts.map((g, i) => (
+        <Ghost key={`ghost-${i}`} glyph={g} color={ghostColor} />
+      ))}
       {glyphs.map((g, i) => (
         <path
           key={i}
@@ -305,5 +350,21 @@ function Word({
         />
       ))}
     </svg>
+  );
+}
+
+/** The other version's glyph, outlined where it would be, to compare without switching. */
+function Ghost({ glyph, color }: { glyph: ShapedGlyph; color: string }) {
+  return (
+    <path
+      d={glyph.d}
+      fill="none"
+      stroke={color}
+      strokeWidth={1.5}
+      strokeDasharray="5 4"
+      vectorEffect="non-scaling-stroke"
+      className="transition-transform duration-700 ease-in-out"
+      style={{ transform: `translate(${glyph.x}px, ${-glyph.y}px) scale(1, -1)` }}
+    />
   );
 }
