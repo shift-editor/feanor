@@ -329,6 +329,7 @@ impl<'a> Flattener<'a> {
         let Some(off) = self.off.take() else { return };
         if off.braces == 0 {
             let text = self.src[off.start..self.pos].trim_end().to_string();
+            self.skipped.push(off.start..off.start + text.len());
             self.elems.push(Elem::Verbatim {
                 text,
                 nl_before: off.nl_before,

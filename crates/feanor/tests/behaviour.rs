@@ -136,6 +136,12 @@ fn leaves_fea_fmt_off_regions_exactly_as_written() {
     let out = fmt(src);
     assert!(out.contains("    sub A      by A.circled;\n"));
     assert!(out.contains("    sub B by B.circled;\n"));
+    // the region is reported, so an editor can tell what was left alone
+    let untouched = format(src, &four_spaces()).untouched;
+    let kept: Vec<&str> = untouched.iter().map(|r| &src[r.clone()]).collect();
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert!(kept[0].contains("sub A      by A.circled;"), "{kept:?}");
+    assert!(!kept[0].contains("sub B"), "{kept:?}");
 }
 
 #[test]
