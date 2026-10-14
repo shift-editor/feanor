@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs } from "@base-ui/react/tabs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Segmented } from "@/components/controls";
 import { hatch } from "@/components/HatchedBars";
 import { type Diagnostic, loadFeanor } from "@/lib/feanor";
@@ -56,7 +56,6 @@ export interface Scene {
 // Shift's negative-spacing amber, as the spacing tool draws it
 const AMBER = "217, 119, 6";
 const CHANGED: Record<Which, string> = { written: "#d97706", meant: "#0c92f4" };
-const SWITCH_EVERY_MS = 2600;
 // Shift's problem colours, as in the lint demo
 const DOT = { error: "bg-[#dc2626]", warning: "bg-[#f97316]", hint: "bg-[#9f9f9f]" } as const;
 
@@ -118,25 +117,12 @@ export function ShapingScenes({ scenes }: { scenes: Scene[] }) {
 
 /**
  * What a mistake does to set text: the same words shaped by HarfBuzz from the
- * feature code as written and as fixed, animating between the two.
+ * feature code as written and as fixed; a toggle switches between the two.
  */
 function ShapingScene({ scene }: { scene: Scene }) {
   const { data, code, pair } = scene;
   const [which, setWhich] = useState<Which>("written");
-  const [paused, setPaused] = useState(false);
   const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null);
-  const reducedMotion = useRef(false);
-
-  useEffect(() => {
-    reducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }, []);
-
-  useEffect(() => {
-    if (paused || reducedMotion.current) return;
-    const timer = setInterval(() => setWhich((w) => (w === "written" ? "meant" : "written")), SWITCH_EVERY_MS);
-    return () => clearInterval(timer);
-  }, [paused]);
-
   useEffect(() => {
     let cancelled = false;
     async function lintWritten() {
@@ -195,8 +181,6 @@ function ShapingScene({ scene }: { scene: Scene }) {
   return (
     <figure
       className="grid gap-6 rounded-xl border border-line bg-surface-raised p-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
     >
       {/* both versions share one grid cell, so the taller sets the height and toggling never shifts the layout */}
       <div className="grid min-w-0 [grid-template-areas:'stack']">
@@ -265,10 +249,7 @@ function ShapingScene({ scene }: { scene: Scene }) {
           <Segmented
             label="Show the font"
             value={which}
-            onChange={(w) => {
-              setPaused(true);
-              setWhich(w);
-            }}
+            onChange={setWhich}
             options={(["written", "meant"] as const).map((w) => ({ value: w, label: data[w].label }))}
           />
           {kerning && (

@@ -78,7 +78,7 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   await consequences.getByRole("tab", { name: tab }).click();
   const scene = consequences.locator("figure").first();
   await scene.hover();
-  // scenes switch versions on a timer; hovering pauses them, then show the written one
+  // show the written version, then the fixed one
   const toggle = (name) => scene.getByRole("radio", { name }).or(scene.getByRole("button", { name })).first();
   await toggle(written).click();
   // both versions stay in the page for a steady layout; only the shown one is visible
