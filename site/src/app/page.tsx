@@ -44,9 +44,9 @@ const NEXT = [
 ];
 
 const STATS = [
-  { value: "2,762", label: "feature files from the upstream sources of every Google Fonts family" },
+  { value: "2,762", label: "feature files from the source repositories of Google Fonts families" },
   { value: "0", label: "files that compile differently after formatting, checked with fea-rs and fontTools" },
-  { value: "2,749 / 2,749", label: "planted mistakes found by the linter, at the right place" },
+  { value: "2,749 / 2,749", label: "mistakes we planted in those files, each found at the right place" },
 ];
 
 const CI = `name: Feature code
@@ -197,14 +197,64 @@ export default async function Home() {
           </h1>
           <p className="max-w-[58ch] font-copy text-[1.0625rem] leading-relaxed text-secondary">
             The <code className="font-mono text-[15px]">.fea</code> code behind a font&apos;s kerning, ligatures and
-            alternates is written by hand, copied between families, and easy to get subtly wrong. Feanor formats it
-            without ever changing the compiled font, and points out mistakes as you type, with fixes.
+            alternates is written by hand, copied between families, and rarely reviewed. Feanor formats it without
+            changing the compiled font, and points out mistakes as you type, often with a fix.
           </p>
           <div id="install" className="flex scroll-mt-8 flex-wrap items-center gap-x-7 gap-y-4 pt-1">
             <CopyCommand command="cargo install feanor-cli" />          </div>
         </div>
         <Playground initial={example("playground.fea")} glyphs={glyphs} />
       </section>
+
+      <Section
+        id="consequences"
+        title="Mistakes that change what readers see"
+        lede={
+          <p>
+            Most of what Feanor reports is clutter: rules that never run, classes nobody uses, the same kerning pair
+            written twice. Feanor can clear much of it away for you. A few mistakes change the text itself. These come
+            from real fonts: one its designer found and fixed later, four still in the fonts as they ship. Feanor flags
+            each one as it&apos;s typed, in the editor and in CI. Every line is shaped by HarfBuzz, the engine in
+            Chrome, Android and Figma.
+          </p>
+        }
+      >
+        <ShapingScenes scenes={scenes} />
+        <p className="max-w-[62ch] font-copy text-copy text-secondary">
+          Designers do find these mistakes, later. In the source history of 308 Google Fonts repositories with feature
+          files, they fixed 1,960 problems by hand, in small edits, that Feanor flags the moment they&apos;re typed.
+        </p>
+      </Section>
+
+      <Section
+        id="linting"
+        title="Mistakes, caught where they are"
+        lede={
+          <p>
+            Misspelled glyphs, classes that don&apos;t line up, invisible characters that arrived by copy-paste. Every
+            diagnostic points at the exact text, explains itself, and often comes with a fix. Safe fixes clear away
+            clutter, like a glyph listed twice or a kerning pair that&apos;s ignored. Unsafe ones, like renaming a
+            glyph to the closest match, wait for you.
+          </p>
+        }
+      >
+        <LintDemo
+          initial={example("lint.fea")}
+          glyphs={glyphs}
+          explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleSummary key={r.code} rule={r} />]))}
+        />
+        <div id="rules" className="mt-10 flex scroll-mt-16 flex-col gap-6">
+          <div className="flex max-w-[62ch] flex-col gap-2">
+            <h3 className="font-release-heading text-subheading">All {rules.length} rules</h3>
+            <p className="font-copy text-copy text-secondary">
+              Each rule has a stable code and a page of documentation. Choose rules by code, family or name in{" "}
+              <code className="font-mono text-[14px]">feanor.toml</code>, on the command line, or with a{" "}
+              <code className="font-mono text-[14px]"># noqa</code> comment.
+            </p>
+          </div>
+        <RuleList rules={rules} />
+        </div>
+      </Section>
 
       <Section
         id="formatting"
@@ -221,11 +271,11 @@ export default async function Home() {
         <FormatDemo examples={examples} />
         <div className="mt-10 flex flex-col gap-6">
           <div className="flex max-w-[62ch] flex-col gap-2">
-            <h3 className="font-release-heading text-subheading">Checked on all of Google Fonts</h3>
+            <h3 className="font-release-heading text-subheading">Checked on Google Fonts</h3>
             <p className="font-copy text-copy text-secondary">
-              Every release formats the feature code from the source repository of every Google Fonts family, then
-              compiles each file before and after with two independent compilers. The layout tables must come out
-              identical.
+              For this release, Feanor formatted every feature file in the source repositories of Google Fonts
+              families, then compiled each one before and after with two independent compilers. The layout tables
+              came out identical.
             </p>
           </div>
           <dl className="grid gap-x-8 gap-y-10 pr-[9px] sm:grid-cols-3">
@@ -237,65 +287,6 @@ export default async function Home() {
             ))}
           </dl>
         </div>
-      </Section>
-
-      <Section
-        id="linting"
-        title="Mistakes, caught where they are"
-        lede={
-          <p>
-            Misspelled glyphs, classes that don&apos;t line up, invisible characters that arrived by copy-paste. Every
-            diagnostic points at the exact text, explains itself, and often comes with a fix. Safe fixes can&apos;t
-            change what the font does. Unsafe ones, like renaming a glyph to the closest match, wait for you.
-          </p>
-        }
-      >
-        <LintDemo
-          initial={example("lint.fea")}
-          glyphs={glyphs}
-          explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleSummary key={r.code} rule={r} />]))}
-        />
-        <div id="consequences" className="mt-10 flex scroll-mt-16 flex-col gap-6">
-          <div className="flex max-w-[62ch] flex-col gap-2">
-            <h3 className="font-release-heading text-subheading">Mistakes that change what readers see</h3>
-            <p className="font-copy text-copy text-secondary">
-              Most of what Feanor reports is clutter: rules that never run, classes nobody uses, the same kerning pair
-              written twice. Some of it Feanor removes for you, safely. A few mistakes change the text itself. These come
-              from real fonts: one its designer found and fixed later, four still in the fonts as they ship. Feanor flags each one as it&apos;s typed, in the editor and in CI. Every line is shaped by
-              HarfBuzz, the engine in Chrome, Android and Figma.
-            </p>
-          </div>
-          <ShapingScenes scenes={scenes} />
-          <p className="max-w-[62ch] font-copy text-copy text-secondary">
-            Designers do find these mistakes, later. In the source history of 308 Google Fonts repositories with
-            feature files, they fixed 1,960 problems by hand, in small edits, that Feanor flags the moment
-            they&apos;re typed.
-          </p>
-        </div>
-        <div id="rules" className="mt-10 flex scroll-mt-16 flex-col gap-6">
-          <div className="flex max-w-[62ch] flex-col gap-2">
-            <h3 className="font-release-heading text-subheading">All {rules.length} rules</h3>
-            <p className="font-copy text-copy text-secondary">
-              Each rule has a stable code and a page of documentation. Choose rules by code, family or name in{" "}
-              <code className="font-mono text-[14px]">feanor.toml</code>, on the command line, or with a{" "}
-              <code className="font-mono text-[14px]"># noqa</code> comment.
-            </p>
-          </div>
-        <RuleList rules={rules} />
-        </div>
-      </Section>
-
-      <Section
-        id="fast"
-        title="Fast enough to run on every keystroke"
-        lede={
-          <p>
-            Feanor lints or formats a 65,000-line feature file in a quarter of a second. In an editor, it re-checks
-            only the part you changed, so even the largest file re-checks in under 10 milliseconds per keystroke.
-          </p>
-        }
-      >
-        <SpeedCharts />
       </Section>
 
       <Section
@@ -324,7 +315,13 @@ export default async function Home() {
           </p>
         }
       >
-        <PullRequest />
+        <figure className="flex flex-col gap-2">
+          <PullRequest />
+          <figcaption className="font-copy text-xs text-muted">
+            An example pull request, with the annotation <code className="font-mono">feanor check --format github</code>{" "}
+            adds.
+          </figcaption>
+        </figure>
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
           <Code label=".github/workflows/feanor.yml" lang="yaml" code={CI} />
           <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
@@ -332,13 +329,26 @@ export default async function Home() {
       </Section>
 
       <Section
+        id="fast"
+        title="Fast enough to run on every keystroke"
+        lede={
+          <p>
+            Feanor lints or formats a 65,000-line feature file in a quarter of a second. In an editor, it re-checks
+            only the part you changed, so even the largest file re-checks in under 10 milliseconds per keystroke.
+          </p>
+        }
+      >
+        <SpeedCharts />
+      </Section>
+
+      <Section
         id="anywhere"
         title="One library, everywhere feature code is edited"
         lede={
           <p>
-            Feanor is a Rust library first: the command-line tool, a WebAssembly build for the browser (this page runs
-            on it), and Shift&apos;s feature editor are all built on the same crate. A language server for VS Code and
-            Zed is next.
+            Feanor is a Rust library first: the command-line tool and a WebAssembly build for the browser (this page
+            runs on it) share the same crate, and Shift&apos;s feature editor is being built on it. A language server
+            for other editors is planned.
           </p>
         }
       >
