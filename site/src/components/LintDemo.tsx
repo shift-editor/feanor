@@ -1,18 +1,23 @@
 "use client";
 
+import { CircleX, Info, TriangleAlert } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { FeaEditor, type FeaEditorHandle } from "./FeaEditor";
 import { AppWindow, ProblemCount } from "./Window";
 import type { Diagnostic } from "@/lib/feanor";
 
-// Shift's problem colours, as in the editor
-const DOT = {
-  error: "bg-[#dc2626]",
-  warning: "bg-[#f97316]",
-  hint: "bg-[#9f9f9f]",
-};
+function SeverityIcon({ severity }: { severity: Diagnostic["severity"] }) {
+  const className = "size-3.5 shrink-0";
+  if (severity === "error") return <CircleX aria-label="Error" className={`${className} text-[#dc2626]`} />;
+  if (severity === "warning") return <TriangleAlert aria-label="Warning" className={`${className} text-[#f97316]`} />;
+  return <Info aria-label="Hint" className={`${className} text-[#9f9f9f]`} />;
+}
 
-/** An editor with deliberate mistakes, the diagnostics Feanor finds, and their fixes. */
+/**
+ * One file with many mistakes, laid out as Shift's feature code window: the
+ * code, then its problems docked underneath. Choosing a problem selects it in
+ * the code and opens its fixes and what the rule is about.
+ */
 export function LintDemo({
   initial,
   glyphs,
@@ -20,86 +25,98 @@ export function LintDemo({
 }: {
   initial: string;
   glyphs: string[];
-  /** Each rule's documentation, rendered on the server, by code. */
+  /** A line on each rule, rendered on the server, by code. */
   explanations: Record<string, ReactNode>;
 }) {
   const editor = useRef<FeaEditorHandle>(null);
-  const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
-  const [explained, setExplained] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Diagnostic[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const [cursor, setCursor] = useState<[number, number]>([1, 1]);
+  const key = (d: Diagnostic) => `${d.code}-${d.from}`;
 
-  function explain(code: string) {
-    setExplained(explained === code ? null : code);
+  function choose(d: Diagnostic) {
+    setOpen(open === key(d) ? null : key(d));
+    editor.current?.select(d.from, d.to);
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <AppWindow
-        title="Feature Code"
-        detail="Demo Sans"
-        status={
-          <>
-            <ProblemCount diagnostics={diagnostics} />
-            <span className="flex-1" />
-            <span className="tabular-nums">
-              {cursor[0]}:{cursor[1]}
-            </span>
-            <span>FEA</span>
-          </>
-        }
-      >
-        <FeaEditor
-          ref={editor}
-          initial={initial}
-          glyphs={glyphs}
-          height="20rem"
-          onDiagnostics={setDiagnostics}
-          onCursor={(line, column) => setCursor([line, column])}
-        />
-      </AppWindow>
-      <div className="flex min-w-0 flex-col gap-1 font-ui">
-        <p className="px-3 py-1 text-[15px] font-medium" aria-live="polite">
-          {diagnostics.length === 0 ? "No problems" : `${diagnostics.length} problem${diagnostics.length === 1 ? "" : "s"}`}
-        </p>
-        <ul>
-          {diagnostics.map((d, i) => (
-            <li
-              key={`${d.code}-${d.from}`}
-              className={`flex flex-col gap-2 rounded-md px-3 py-2.5 ${i % 2 === 0 ? "bg-stripe" : ""}`}
-            >
-              <div className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-baseline gap-x-2.5">
-                <span aria-label={d.severity} className={`size-2 -translate-y-px rounded-full ${DOT[d.severity]}`} />
-                <p className="text-[14px] leading-snug text-primary">{d.message}</p>
-                <span className="font-mono text-[11px] text-muted">L{d.start.line + 1}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 pl-[1.125rem]">
+    <AppWindow
+      title="Feature Code"
+      detail="Demo Sans"
+      status={
+        <>
+          <ProblemCount diagnostics={diagnostics} />
+          <span className="flex-1" />
+          <span className="tabular-nums">
+            {cursor[0]}:{cursor[1]}
+          </span>
+          <span>FEA</span>
+        </>
+      }
+    >
+      <FeaEditor
+        ref={editor}
+        initial={initial}
+        glyphs={glyphs}
+        height="22rem"
+        onDiagnostics={setDiagnostics}
+        onCursor={(line, column) => setCursor([line, column])}
+      />
+      <section aria-label="Problems" className="border-t border-line-subtle">
+        <header className="flex h-8 items-center gap-1.5 px-4 text-[11px] font-medium text-primary">
+          Problems
+          <span className="rounded-full bg-input px-1.5 font-normal text-muted tabular-nums">
+            {diagnostics?.length ?? 0}
+          </span>
+        </header>
+        <ul className="max-h-72 overflow-y-auto pb-1.5">
+          {diagnostics?.length === 0 && <li className="px-4 py-1 text-[11px] text-muted">No problems</li>}
+          {diagnostics?.map((d) => {
+            const isOpen = open === key(d);
+            return (
+              <li key={key(d)} className={isOpen ? "bg-hover/40" : ""}>
                 <button
                   type="button"
-                  onClick={() => explain(d.code)}
-                  aria-expanded={explained === d.code}
-                  title={d.rule}
-                  className="cursor-pointer rounded bg-chrome px-1.5 py-0.5 font-mono text-[11px] text-primary hover:bg-control-muted aria-expanded:bg-primary aria-expanded:text-white"
+                  aria-expanded={isOpen}
+                  onClick={() => choose(d)}
+                  className="flex h-7 w-full cursor-pointer items-center gap-2 px-4 text-left text-[12px] hover:bg-hover/50"
                 >
-                  {d.code}
+                  <SeverityIcon severity={d.severity} />
+                  <span className="min-w-0 truncate text-primary">{d.message}</span>
+                  <span className="shrink-0 text-muted">Feanor {d.code}</span>
+                  <span className="ml-auto shrink-0 pl-3 font-mono text-[11px] text-muted tabular-nums">
+                    {d.start.line + 1}:{d.start.character + 1}
+                  </span>
                 </button>
-                {d.fixes.map((fix) => (
-                  <button
-                    key={fix.title}
-                    type="button"
-                    onClick={() => editor.current?.applyEdits(fix.edits)}
-                    title={fix.applicability === "unsafe" ? "Unsafe: may change what the font does" : undefined}
-                    className="cursor-pointer rounded border border-line-subtle bg-surface-raised px-1.5 py-0.5 text-[12px] text-primary transition-colors hover:bg-input"
-                  >
-                    {fix.title}
-                    {fix.applicability === "unsafe" && <span className="text-muted"> · unsafe</span>}
-                  </button>
-                ))}
-              </div>
-            </li>
-          ))}
+                {isOpen && (
+                  <div className="flex flex-col gap-2 pr-4 pb-3 pl-[2.375rem]">
+                    {d.fixes.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {d.fixes.map((fix) => (
+                          <button
+                            key={fix.title}
+                            type="button"
+                            onClick={() => {
+                              editor.current?.applyEdits(fix.edits);
+                              setOpen(null);
+                            }}
+                            title={fix.applicability === "unsafe" ? "Unsafe: may change what the font does" : undefined}
+                            className="h-6 cursor-pointer rounded border border-line-subtle bg-surface-raised px-2 text-[12px] text-primary transition-colors hover:bg-input"
+                          >
+                            {fix.title}
+                            {fix.applicability === "unsafe" && <span className="text-muted"> · unsafe</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {explanations[d.code]}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
-        {explained && <div className="mt-3 px-3">{explanations[explained]}</div>}
-      </div>
-    </div>
+      </section>
+    </AppWindow>
   );
 }

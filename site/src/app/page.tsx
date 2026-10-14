@@ -3,7 +3,8 @@ import { CopyCommand } from "@/components/CopyCommand";
 import { type Example, FormatDemo } from "@/components/FormatDemo";
 import { LintDemo } from "@/components/LintDemo";
 import { Playground } from "@/components/Playground";
-import { Brief, RuleList } from "@/components/RuleList";
+import { PullRequest } from "@/components/PullRequest";
+import { RuleList, RuleSummary } from "@/components/RuleList";
 import { Section } from "@/components/Section";
 import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
@@ -160,7 +161,6 @@ export default async function Home() {
 
       <Section
         id="formatting"
-        eyebrow="01 · Formatting"
         title="Safe to run on any font"
         lede={
           <p>
@@ -194,7 +194,6 @@ export default async function Home() {
 
       <Section
         id="linting"
-        eyebrow="02 · Linting"
         title="Mistakes, caught where they are"
         lede={
           <p>
@@ -207,7 +206,7 @@ export default async function Home() {
         <LintDemo
           initial={example("lint.fea")}
           glyphs={glyphs}
-          explanations={Object.fromEntries(rules.map((r) => [r.code, <Brief key={r.code} rule={r} />]))}
+          explanations={Object.fromEntries(rules.map((r) => [r.code, <RuleSummary key={r.code} rule={r} />]))}
         />
         <div id="consequences" className="mt-10 flex scroll-mt-16 flex-col gap-6">
           <div className="flex max-w-[62ch] flex-col gap-2">
@@ -234,7 +233,6 @@ export default async function Home() {
 
       <Section
         id="fast"
-        eyebrow="03 · Speed"
         title="Fast enough to run on every keystroke"
         lede={
           <p>
@@ -249,7 +247,6 @@ export default async function Home() {
 
       <Section
         id="ci"
-        eyebrow="04 · Review"
         title="Tidy feature code on every pull request"
         lede={
           <p>
@@ -260,30 +257,15 @@ export default async function Home() {
           </p>
         }
       >
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
+        <PullRequest />
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
           <Code label=".github/workflows/feanor.yml" lang="yaml" code={CI} />
-          <div className="flex min-w-0 flex-col gap-6">
-            <figure className="flex flex-col gap-1.5 pr-[9px]">
-              <figcaption className="font-ui text-xs text-muted">On the pull request</figcaption>
-              <div className="card p-4 font-ui text-sm">
-                <p className="font-mono text-xs text-muted">features/common.fea, line 72</p>
-                <p className="mt-2 flex gap-2">
-                  <span className="bg-danger-surface px-1.5 font-mono text-[11px] leading-5 text-danger">error</span>
-                  <span>
-                    <span className="font-mono text-[13px]">C003 undefined-class</span>: class @numbers_dflt is never
-                    defined in the project
-                  </span>
-                </p>
-              </div>
-            </figure>
-            <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
-          </div>
+          <Code label="Settings, if you need any" lang="toml" code={CONFIG} />
         </div>
       </Section>
 
       <Section
         id="anywhere"
-        eyebrow="05 · Building on it"
         title="One library, everywhere feature code is edited"
         lede={
           <p>

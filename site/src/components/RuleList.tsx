@@ -23,6 +23,19 @@ export function Brief({ rule }: { rule: Rule }) {
   );
 }
 
+/** One line on a rule, with a link to its page: for a problem opened in the lint demo. */
+export function RuleSummary({ rule }: { rule: Rule }) {
+  return (
+    <p className="font-ui text-[12px] leading-relaxed text-secondary [&_code]:font-mono [&_code]:text-[11px]">
+      <span className="font-medium text-primary">{rule.name}</span>{" "}
+      <ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{rule.summary}</ReactMarkdown>{" "}
+      <a href={`${RULES_ON_GITHUB}/${rule.code}.md`} className="text-accent underline-offset-2 hover:underline">
+        More →
+      </a>
+    </p>
+  );
+}
+
 /** The rules, briefed here on the server, in a table that filters and opens on the client. */
 export function RuleList({ rules }: { rules: Rule[] }) {
   return (

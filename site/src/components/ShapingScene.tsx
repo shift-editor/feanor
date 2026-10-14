@@ -142,27 +142,43 @@ function ShapingScene({ scene }: { scene: Scene }) {
   const variant = data[which];
   const kerning = pair === undefined ? null : kerningBand(data, which, pair);
 
+  /** One version's code, with the problem Feanor finds in the written one, and its note. */
+  const side = (w: Which) => (
+    <>
+      {code[w]}
+      {w === "written" && diagnostic && (
+        <div className="grid grid-cols-[0.5rem_minmax(0,1fr)] items-baseline gap-x-2.5 gap-y-1.5 rounded-md bg-stripe px-3 py-2.5 font-ui">
+          <span aria-label={diagnostic.severity} className={`size-2 -translate-y-px rounded-full ${DOT[diagnostic.severity]}`} />
+          <p className="text-[14px] leading-snug text-primary">{diagnostic.message}</p>
+          <span
+            title={diagnostic.rule}
+            className="col-start-2 w-fit rounded bg-chrome px-1.5 py-0.5 font-mono text-[11px] text-primary"
+          >
+            {diagnostic.code}
+          </span>
+        </div>
+      )}
+      {data[w].note && <p className="font-copy text-sm text-secondary">{data[w].note}</p>}
+    </>
+  );
+
   return (
     <figure
       className="grid gap-6 rounded-xl border border-line bg-surface-raised p-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="flex min-w-0 flex-col gap-3">
-        {code[which]}
-        {which === "written" && diagnostic && (
-          <div className="grid grid-cols-[0.5rem_minmax(0,1fr)] items-baseline gap-x-2.5 gap-y-1.5 rounded-md bg-stripe px-3 py-2.5 font-ui">
-            <span aria-label={diagnostic.severity} className={`size-2 -translate-y-px rounded-full ${DOT[diagnostic.severity]}`} />
-            <p className="text-[14px] leading-snug text-primary">{diagnostic.message}</p>
-            <span
-              title={diagnostic.rule}
-              className="col-start-2 w-fit rounded bg-chrome px-1.5 py-0.5 font-mono text-[11px] text-primary"
-            >
-              {diagnostic.code}
-            </span>
+      {/* both versions share one grid cell, so the taller sets the height and toggling never shifts the layout */}
+      <div className="grid min-w-0 [grid-template-areas:'stack']">
+        {(["written", "meant"] as const).map((w) => (
+          <div
+            key={w}
+            aria-hidden={w !== which}
+            className={`flex min-w-0 flex-col gap-3 [grid-area:stack] ${w === which ? "" : "invisible"}`}
+          >
+            {side(w)}
           </div>
-        )}
-        {variant.note && <p className="font-copy text-sm text-secondary">{variant.note}</p>}
+        ))}
       </div>
 
       <div className="flex min-w-0 flex-col justify-center gap-4">

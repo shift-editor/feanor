@@ -23,6 +23,8 @@ export interface FeaEditorHandle {
   setText(text: string): void;
   /** Apply edits given as UTF-16 ranges into the current text. */
   applyEdits(edits: { from: number; to: number; insert: string }[]): void;
+  /** Select a range and scroll it into view, without taking focus from the page. */
+  select(from: number, to: number): void;
 }
 
 interface Props {
@@ -186,6 +188,15 @@ export const FeaEditor = forwardRef<FeaEditorHandle, Props>(function FeaEditor(
     },
     applyEdits(edits) {
       view.current?.dispatch({ changes: edits });
+    },
+    select(from, to) {
+      const v = view.current;
+      if (!v) return;
+      const end = v.state.doc.length;
+      v.dispatch({
+        selection: { anchor: Math.min(from, end), head: Math.min(Math.max(to, from), end) },
+        effects: EditorView.scrollIntoView(Math.min(from, end), { y: "center" }),
+      });
     },
   }));
 
