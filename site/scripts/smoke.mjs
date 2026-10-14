@@ -68,6 +68,7 @@ check(after === before - 1, `safe fix removed one problem (${before} -> ${after}
 const consequences = page.locator("#consequences");
 const scenes = [
   ["An i-matra that never reaches", "R001", "As shipped", 5],
+  ["A gap that never opens", "R005", "As shipped", 7],
   ["Kerning written twice", "R003", "As written", 5],
   ["An exception that comes too late", "R001", "As written", 11],
 ];

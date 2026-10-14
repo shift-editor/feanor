@@ -11,6 +11,7 @@ import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
 import unreachableImatra from "@/scenes/unreachable-imatra.json";
+import syriacNun from "@/scenes/syriac-nun.json";
 import unreachableRule from "@/scenes/unreachable-rule.json";
 
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -28,6 +29,7 @@ const CREDITS = [
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
   { name: "Inter", href: "https://github.com/rsms/inter" },
   { name: "Martel", href: "https://github.com/typeoff/martel" },
+  { name: "Idiqlat", href: "https://github.com/silnrsi/font-idiqlat" },
 ];
 
 const NEXT = [
@@ -106,6 +108,13 @@ const SCENES = [
     data: unreachableImatra,
     file: "features.fea",
     found: "From a font as it ships. Found in 4 Google Fonts families.",
+  },
+  {
+    id: "syriac-nun",
+    title: "A gap that never opens",
+    data: syriacNun,
+    file: "features.fea",
+    found: "From a font as it ships. Found in 2 Google Fonts families.",
   },
   {
     id: "duplicate-pair",

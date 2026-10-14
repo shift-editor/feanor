@@ -12,12 +12,15 @@ compiled tables (`patch`), and the code shown is an excerpt of its source.
 
 Martel Bold (for the i-matra scene) is
 https://github.com/google/fonts/raw/main/ofl/martel/Martel-Bold.ttf
+and Idiqlat Regular (for the Syriac scene) is
+https://github.com/google/fonts/raw/main/ofl/idiqlat/Idiqlat-Regular.ttf
 
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
     --command python3 scenes/build.py \\
       --inter "$(nix build --no-link --print-out-paths nixpkgs#inter)/share/fonts/truetype/InterVariable.ttf" \\
       --martel Martel-Bold.ttf \\
+      --idiqlat Idiqlat-Regular.ttf \\
       --feanor ../target/release/feanor
 
 Writes src/scenes/<scene>.json.
@@ -41,6 +44,8 @@ OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "scenes"
 
 INTER = "Inter Bold, © 2016 The Inter Project Authors, SIL Open Font License 1.1"
 MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL Open Font License 1.1"
+IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
+           "SIL Open Font License 1.1")
 
 SCENES = {
     "duplicate-pair": {
@@ -111,6 +116,34 @@ SCENES = {
             },
         },
     },
+    "syriac-nun": {
+        "font": "idiqlat",
+        # the font as it ships: its own GPOS spaces nun from a vowel below the alaph
+        "shipped": True,
+        "text": "ܐܷܢ ܐܸܢ",
+        "features": {},
+        "variants": {
+            # an excerpt of the source; the real class lists 18 marks below
+            "written": {
+                "label": "As shipped",
+                "fea": "@below = [\n    zlamadottedhorizontal-syriac\n    rbasabelow-syriac\n    pthahabelow-syriac\n];\n\n"
+                "lookup kern_nun_1 {\n    lookupflag RightToLeft;\n    pos nun-syriac.cv18 405;\n} kern_nun_1;\n\n"
+                "feature kern {\n    pos alaph-syriac @below\n        nun-syriac' lookup kern_nun_1;\n} kern;\n",
+                "note": "After an alaph, nun has already become its nun-syriac.cv18 form by the time "
+                "positioning runs. The lookup only has a rule for that form, so the rule that calls it "
+                "on nun-syriac never adds the space, and the vowel below the alaph crowds the nun.",
+            },
+            "meant": {
+                "label": "Fixed",
+                "patch": "nun-cv18",
+                "fea": "@below = [\n    zlamadottedhorizontal-syriac\n    rbasabelow-syriac\n    pthahabelow-syriac\n];\n\n"
+                "lookup kern_nun_1 {\n    lookupflag RightToLeft;\n    pos nun-syriac.cv18 405;\n} kern_nun_1;\n\n"
+                "feature kern {\n    pos alaph-syriac @below\n        nun-syriac.cv18' lookup kern_nun_1;\n} kern;\n",
+                "note": "The rule marks the form the nun has at that point, and the lookup's 405 units "
+                "clear the vowel.",
+            },
+        },
+    },
 }
 
 # every scene without its own languagesystem gets the default one
@@ -171,7 +204,21 @@ def imatra_first(font: TTFont) -> None:
     raise SystemExit("the i-matra rules weren't found in this font's pres feature")
 
 
-PATCHES = {"imatra-first": imatra_first}
+def nun_cv18(font: TTFont) -> None:
+    """Mark the nun.cv18 form in the compiled rule that spaces nun from a vowel below
+    the alaph before it, as the lookup it calls only has a rule for that form."""
+    for lookup in font["GPOS"].table.LookupList.Lookup:
+        for subtable in lookup.SubTable:
+            st = getattr(subtable, "ExtSubTable", subtable)
+            if getattr(st, "Format", 0) != 3 or not hasattr(st, "InputCoverage"):
+                continue
+            if st.InputCoverage[0].glyphs == ["uni0722"] and "uni0710" in st.BacktrackCoverage[-1].glyphs:
+                st.InputCoverage[0].glyphs = ["uni0722.cv18"]
+                return
+    raise SystemExit("the nun rule wasn't found in this font's GPOS")
+
+
+PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18}
 
 
 def copy(source: TTFont) -> TTFont:
@@ -233,11 +280,13 @@ def main() -> None:
     args = argparse.ArgumentParser()
     args.add_argument("--inter", required=True)
     args.add_argument("--martel", required=True)
+    args.add_argument("--idiqlat", required=True)
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
-    fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL)}
+    fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
+             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT)}
     OUT.mkdir(parents=True, exist_ok=True)
 
     for name, scene in SCENES.items():
