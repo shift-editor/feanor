@@ -100,12 +100,12 @@ for (const [tab, code, written, fixed, glyphs] of scenes) {
   );
 }
 
-// terminal: real captured sessions, one per tab
+// terminal: real captured sessions in a terminal window, one per tab
 const terminal = page.locator("#terminal");
 for (const tab of ["Lint", "Format", "CI", "Explain"]) {
   await terminal.getByRole("tab", { name: tab }).click();
-  const text = await terminal.locator("figure").innerText();
-  check(text.includes("$ feanor") && /exit status \d/.test(text), `terminal shows the ${tab} session`);
+  const text = await terminal.locator("pre").innerText();
+  check(/~\/my-font ❯ feanor /.test(text) && /❯\s*$/.test(text.trimEnd()), `terminal shows the ${tab} session`);
 }
 
 // speed: hatched charts with a tooltip on hover, numbers for screen readers
