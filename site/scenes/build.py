@@ -42,35 +42,39 @@ SCENES = {
         "glyphs": ["T", "o", "k", "y"],
         "features": {"kern": True},
         "variants": {
-            # the designer corrected T o further down; compilers keep the first value
+            # a dropped minus sign, corrected further down; compilers keep the first value,
+            # so the gap ships. The mistake has to be visible: the fix must look better.
             "written": {
                 "label": "As written",
-                "fea": "feature kern {\n    pos T o -180;\n    pos T y -80;\n    pos T o -60;\n} kern;\n",
+                "fea": "feature kern {\n    pos T o 150;\n    pos T y -80;\n    pos T o -150;\n} kern;\n",
             },
             "meant": {
                 "label": "Fixed",
-                "fea": "feature kern {\n    pos T y -80;\n    pos T o -60;\n} kern;\n",
-                "note": "The later value was the correction, so the first one goes. Feanor's automatic "
-                "fix removes the ignored line instead, which keeps the font as it ships.",
+                "fea": "feature kern {\n    pos T y -80;\n    pos T o -150;\n} kern;\n",
+                "note": "The first value lost its minus sign, and the correction below it never applies. "
+                "Feanor's automatic fix removes the ignored line instead, which keeps the font as it ships: "
+                "here, the typo is the line to delete.",
             },
         },
     },
     "unreachable-rule": {
         "font": "inter",
-        "text": "Lettuce",
-        "glyphs": ["L", "e", "t", "u", "c", "t.1"],
+        # Inter's hyphen.case sits higher, centred on capitals; after lowercase the
+        # plain hyphen should stay. With the exception second, every hyphen rises.
+        "text": "A-Z a-z",
+        "glyphs": ["A", "Z", "a", "z", "space", "hyphen", "hyphen.case"],
         "features": {"calt": True},
         "variants": {
             # the exception comes after the rule it should stop
             "written": {
                 "label": "As written",
-                "fea": "feature calt {\n    sub t' by t.1;\n    ignore sub t' t;\n} calt;\n",
+                "fea": "feature calt {\n    sub hyphen' by hyphen.case;\n    ignore sub [a z] hyphen';\n} calt;\n",
             },
             "meant": {
                 "label": "Fixed",
-                "fea": "feature calt {\n    ignore sub t' t;\n    sub t' by t.1;\n} calt;\n",
+                "fea": "feature calt {\n    ignore sub [a z] hyphen';\n    sub hyphen' by hyphen.case;\n} calt;\n",
                 "note": "The exception goes first. Within a lookup the first rule that matches wins, "
-                "so an ignore after the rule it should stop never runs.",
+                "so an ignore after the rule it should stop never runs, and every hyphen rises.",
             },
         },
     },
