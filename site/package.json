@@ -6,7 +6,9 @@
     "dev": "node scripts/sync-wasm.mjs && next dev",
     "build": "node scripts/sync-wasm.mjs && next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
@@ -32,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "oxfmt": "^0.49.0",
     "playwright": "1.59.1",
     "tailwindcss": "^4",
     "typescript": "^5"
