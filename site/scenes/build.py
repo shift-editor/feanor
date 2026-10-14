@@ -14,10 +14,8 @@ Martel Bold (for the i-matra scene) is
 https://github.com/google/fonts/raw/main/ofl/martel/Martel-Bold.ttf
 Idiqlat Regular (for the Syriac scene) is
 https://github.com/google/fonts/raw/main/ofl/idiqlat/Idiqlat-Regular.ttf
-Coiny Regular (for the kerning scene) is
+and Coiny Regular (for the kerning scene) is
 https://github.com/google/fonts/raw/main/ofl/coiny/Coiny-Regular.ttf
-and Playwrite GBJ (for the joining scene) is
-https://github.com/google/fonts/raw/main/ofl/playwritegbj/PlaywriteGBJ%5Bwght%5D.ttf
 
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
@@ -26,7 +24,6 @@ Usage (from site/):
       --martel Martel-Bold.ttf \\
       --idiqlat Idiqlat-Regular.ttf \\
       --coiny Coiny-Regular.ttf \\
-      --playwrite "PlaywriteGBJ[wght].ttf" \\
       --feanor ../target/release/feanor
 
 Writes src/scenes/<scene>.json.
@@ -54,7 +51,6 @@ MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL 
 IDIQLAT = ("Idiqlat Regular, © 2025–2026 SIL Global, original fonts © 1997–2025 Sparksoft Systems, "
            "SIL Open Font License 1.1")
 COINY = "Coiny Regular, © 2015 Marcelo Magalhaes, SIL Open Font License 1.1"
-PLAYWRITE = "Playwrite GBJ, © 2023 The Playwrite Project Authors, SIL Open Font License 1.1"
 
 SCENES = {
     "duplicate-pair": {
@@ -162,29 +158,6 @@ SCENES = {
             },
         },
     },
-    "unreachable-join": {
-        "font": "playwrite",
-        # the font as it ships: the e drawn to follow this f never appears
-        "shipped": True,
-        "text": "feel",
-        "focus": [0, 4],
-        "features": {},
-        "variants": {
-            # an excerpt of the source; the real classes list more letters
-            "written": {
-                "label": "As shipped",
-                "fea": "feature calt {\n    sub [b.jmc.ini b.jmc.med f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_n_ e.mod.fin_n_];\n    sub [f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_b_ e.mod.fin_b_];\n} calt;\n",
-                "note": "The first rule picks the e that follows most joining letters, and its class "
-                "includes this f. So the e drawn to follow the f, with a rounder eye, never appears.",
-            },
-            "meant": {
-                "label": "Fixed",
-                "patch": "f-e-first",
-                "fea": "feature calt {\n    sub [f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_b_ e.mod.fin_b_];\n    sub [b.jmc.ini b.jmc.med f.jmc.ini f.jmc.med]\n        [e.mod.med e.mod.fin]'\n        by [e.mod.med_n_ e.mod.fin_n_];\n} calt;\n",
-                "note": "The rule for f goes first, and the e after it takes the form drawn for it.",
-            },
-        },
-    },
 }
 
 # every scene without its own languagesystem gets the default one
@@ -279,31 +252,8 @@ def later_pairs(font: TTFont) -> None:
         raise SystemExit("no pair is listed twice in this font's GPOS")
 
 
-def f_e_first(font: TTFont) -> None:
-    """Move the rule for e after f.jmc ahead of the general rule for e after joining letters."""
-    gsub = font["GSUB"].table
-    for lookup in gsub.LookupList.Lookup:
-        if lookup.LookupType != 6:
-            continue
-        general = specific = None
-        for i, st in enumerate(lookup.SubTable):
-            if st.Format != 3 or not st.BacktrackCoverage:
-                continue
-            if not {"e.mod.med", "e.mod.fin"} <= set(st.InputCoverage[0].glyphs):
-                continue
-            before = set(st.BacktrackCoverage[0].glyphs)
-            if {"f.jmc.ini", "b.jmc.ini"} <= before:
-                general = i
-            elif before == {"f.jmc.ini", "f.jmc.med"}:
-                specific = i
-        if general is not None and specific is not None:
-            assert general < specific, "the specific rule already comes first"
-            lookup.SubTable.insert(general, lookup.SubTable.pop(specific))
-            return
-    raise SystemExit("the e rules weren't found in this font's calt")
 
-
-PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18, "later-pairs": later_pairs, "f-e-first": f_e_first}
+PATCHES = {"imatra-first": imatra_first, "nun-cv18": nun_cv18, "later-pairs": later_pairs}
 
 
 def copy(source: TTFont) -> TTFont:
@@ -382,14 +332,12 @@ def main() -> None:
     args.add_argument("--martel", required=True)
     args.add_argument("--idiqlat", required=True)
     args.add_argument("--coiny", required=True)
-    args.add_argument("--playwrite", required=True)
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
     fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL),
-             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY),
-             "playwrite": (TTFont(opts.playwrite), PLAYWRITE)}
+             "idiqlat": (TTFont(opts.idiqlat), IDIQLAT), "coiny": (TTFont(opts.coiny), COINY)}
     OUT.mkdir(parents=True, exist_ok=True)
 
     for name, scene in SCENES.items():

@@ -231,9 +231,6 @@ function ShapingScene({ scene }: { scene: Scene }) {
               aria-label={`${data.text}, ${variant.label}`}
               className="relative block w-full"
             >
-              {[...moved(data, other(which))].map((i) => (
-                <Ghost key={`ghost-${i}`} glyph={data[other(which)].glyphs[i]} color={CHANGED[other(which)]} />
-              ))}
               {variant.glyphs.map((g, i) => (
                 <path
                   key={i}
@@ -254,8 +251,6 @@ function ShapingScene({ scene }: { scene: Scene }) {
                   glyphs={data[w].glyphs}
                   changed={changed(data, w)}
                   color={CHANGED[w]}
-                  ghosts={[...changed(data, other(w))].map((i) => data[other(w)].glyphs[i])}
-                  ghostColor={CHANGED[other(w)]}
                   viewBox={viewBox}
                   label={`${data.text}, ${data[w].label}`}
                   visible={w === which}
@@ -283,9 +278,7 @@ function ShapingScene({ scene }: { scene: Scene }) {
             </span>
           )}
         </div>
-        <p className="font-copy text-xs text-muted">
-          Dashed outline: {data[other(which)].label.toLowerCase()}.{scene.found && ` ${scene.found}`}
-        </p>
+        {scene.found && <p className="font-copy text-xs text-muted">{scene.found}</p>}
       </div>
     </figure>
   );
@@ -315,14 +308,10 @@ function Word({
   label,
   visible,
   stacked,
-  ghosts,
-  ghostColor,
 }: {
   glyphs: ShapedGlyph[];
   changed: Set<number>;
   color: string;
-  ghosts: ShapedGlyph[];
-  ghostColor: string;
   viewBox: string;
   label: string;
   visible: boolean;
@@ -338,9 +327,6 @@ function Word({
       className={`block w-full text-primary transition-opacity duration-500 ease-in-out ${placement}`}
       style={{ opacity: visible ? 1 : 0 }}
     >
-      {ghosts.map((g, i) => (
-        <Ghost key={`ghost-${i}`} glyph={g} color={ghostColor} />
-      ))}
       {glyphs.map((g, i) => (
         <path
           key={i}
@@ -353,18 +339,3 @@ function Word({
   );
 }
 
-/** The other version's glyph, outlined where it would be, to compare without switching. */
-function Ghost({ glyph, color }: { glyph: ShapedGlyph; color: string }) {
-  return (
-    <path
-      d={glyph.d}
-      fill="none"
-      stroke={color}
-      strokeWidth={1.5}
-      strokeDasharray="5 4"
-      vectorEffect="non-scaling-stroke"
-      className="transition-transform duration-700 ease-in-out"
-      style={{ transform: `translate(${glyph.x}px, ${-glyph.y}px) scale(1, -1)` }}
-    />
-  );
-}
