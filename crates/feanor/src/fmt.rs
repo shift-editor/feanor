@@ -96,6 +96,15 @@ pub struct Formatted {
 /// assert_eq!(out.text, "@lc = [a b c];\nfeature liga { sub f i by f_i; } liga;\n");
 /// ```
 pub fn format(source: &str, options: &FormatOptions) -> Formatted {
+    // a broken `include` can't be parsed safely (see `bare_includes`): leave the text as written
+    if !bare_includes(source).is_empty() {
+        return Formatted {
+            text: source.to_string(),
+            // one range: the whole text
+            untouched: std::iter::once(0..source.len()).collect(),
+            feature_body: false,
+        };
+    }
     // keep the file's line endings: format with `\n`, then put `\r\n` back
     if uses_crlf(source) {
         let lf = source.replace("\r\n", "\n");
@@ -1075,13 +1084,58 @@ pub fn parse(source: &str, glyphs: Option<&GlyphMap>) -> ParseTree {
     parse_with_diagnostics(source, glyphs).0
 }
 
+/// Where the word `include` appears without a `(` after it, outside comments and
+/// strings. fea-rs panics when it resolves an include that has no path, which
+/// happens whenever someone is partway through typing one, so the parser never
+/// sees these.
+pub(crate) fn bare_includes(source: &str) -> Vec<Range<usize>> {
+    let is_name = |c: char| c.is_ascii_alphanumeric() || "_.-\\*+:^|~@'$".contains(c);
+    let mut out = Vec::new();
+    let mut chars = source.char_indices().peekable();
+    while let Some((at, c)) = chars.next() {
+        match c {
+            '#' => while chars.next_if(|&(_, c)| c != '\n' && c != '\r').is_some() {},
+            '"' => {
+                while chars.next_if(|&(_, c)| c != '"').is_some() {}
+                chars.next();
+            }
+            c if is_name(c) => {
+                let mut end = at + c.len_utf8();
+                while let Some((i, c)) = chars.next_if(|&(_, c)| is_name(c)) {
+                    end = i + c.len_utf8();
+                }
+                let followed_by_paren = source[end..].trim_start().starts_with('(');
+                if &source[at..end] == "include" && !followed_by_paren {
+                    out.push(at..end);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// `source` with each bare `include` replaced by `INCLUDE`, which fea-rs reads
+/// as a name; the length is the same, so every byte offset still holds.
+fn hide_bare_includes(source: &str) -> std::borrow::Cow<'_, str> {
+    let bare = bare_includes(source);
+    if bare.is_empty() {
+        return std::borrow::Cow::Borrowed(source);
+    }
+    let mut text = source.to_string();
+    for range in bare {
+        text.replace_range(range, "INCLUDE");
+    }
+    std::borrow::Cow::Owned(text)
+}
+
 /// Parse a single in-memory file, keeping fea-rs's parse diagnostics.
 pub(crate) fn parse_with_diagnostics(
     source: &str,
     glyphs: Option<&GlyphMap>,
 ) -> (ParseTree, fea_rs::DiagnosticSet) {
     const NAME: &str = "<memory>";
-    let text: Arc<str> = source.into();
+    let text: Arc<str> = hide_bare_includes(source).into();
     let resolver = move |p: &std::path::Path| {
         if p == std::path::Path::new(NAME) {
             Ok(text.clone())

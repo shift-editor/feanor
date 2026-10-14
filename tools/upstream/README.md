@@ -35,6 +35,37 @@ rewriter doesn't expect. With a glyph map containing the names it parses.
 The message itself asks for a report. feanor works around it by building a
 parse-only glyph map from every hyphenated word in the text.
 
+## 3. A bare `include` panics the parser
+
+`bare-include.fea` is the single word:
+
+```fea
+include
+```
+
+`parse_root` (and `parse_string`) panic at `token_tree/typed.rs:555`
+(`Include::path` unwraps a missing `Path` token) while resolving includes.
+Anyone typing `include(...)` in an editor passes through this state. feanor
+hides a bare `include` from the parser and reports it itself (`bare_includes`
+in `crates/feanor/src/fmt.rs`).
+
+## 4. The compiler panics on real sources at `compile/lookups/contextual.rs:379`
+
+`contextual-panic.fea` is the smallest part of a Google Fonts family's source
+that still panics (`called Option::unwrap() on a None value`): a contextual
+rule calling a lookup at its second marked glyph, among empty lookup blocks.
+Two more Google Fonts families' sources panic at the same line. fontTools
+compiles all three.
+
+## 5. The compiler panics on afdko's invalid-input tests
+
+From `afdko/tests/addfeatures_data/input/spec/*.bad.fea`, files makeotf is
+expected to reject: fea-rs panics instead of reporting an error at
+`compile/compile_ctx.rs:1629`, `:1645`, `:1887` and `:2032`,
+`compile/features.rs:521`, `compile/tables/stat.rs:64` and `:145`, and
+`token_tree/typed.rs:710` (13 files). Reproduce with
+`feanor dev compile FILE`.
+
 ## Other observations (probably by design; worth confirming)
 
 - Token positions (`Token::range`, `Node::range`) are only filled in when a
