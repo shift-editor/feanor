@@ -44,11 +44,21 @@ fn read(path: &Path) -> Result<String, ProjectError> {
     })
 }
 
+/// The file's canonical path, which identifies it when includes are followed.
+/// Where the platform can't resolve paths (WASI in a browser), the path as
+/// given, made absolute when possible, as long as the file exists.
 fn canonical(path: &Path) -> Result<PathBuf, ProjectError> {
-    path.canonicalize().map_err(|source| ProjectError::Read {
+    let error = |source| ProjectError::Read {
         path: path.to_path_buf(),
         source,
-    })
+    };
+    match path.canonicalize() {
+        Err(e) if e.kind() == std::io::ErrorKind::Unsupported => {
+            std::fs::metadata(path).map_err(error)?;
+            Ok(std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf()))
+        }
+        result => result.map_err(error),
+    }
 }
 
 /// Something wrong with how the project's files fit together. The project
