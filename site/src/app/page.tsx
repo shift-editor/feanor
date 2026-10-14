@@ -236,9 +236,8 @@ export default async function Home() {
         title="Fast enough to run on every keystroke"
         lede={
           <p>
-            Feanor lints a 65,000-line feature file in 0.2 seconds and formats it in 0.3. In an editor, it re-checks
-            only the part you changed, so even the largest file re-checks in a couple of milliseconds per
-            keystroke.
+            Feanor lints or formats a 65,000-line feature file in a quarter of a second. In an editor, it re-checks
+            only the part you changed, so even the largest file re-checks in under 10 milliseconds per keystroke.
           </p>
         }
       >
