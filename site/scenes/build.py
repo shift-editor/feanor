@@ -6,11 +6,18 @@ position and cluster. The page only animates between the results, so what it
 shows is HarfBuzz's real output. A version can be compiled by fontTools (the
 default) or by fea-rs, through `feanor dev compile`.
 
+A scene can instead use a font exactly as it ships, with its own layout
+tables: then the fixed version is that font with the fix applied to its
+compiled tables (`patch`), and the code shown is an excerpt of its source.
+
+Martel Bold (for the i-matra scene) is
+https://github.com/google/fonts/raw/main/ofl/martel/Martel-Bold.ttf
+
 Usage (from site/):
   nix shell --impure --expr '(import<nixpkgs>{}).python3.withPackages(p:[p.fonttools p.uharfbuzz])' \\
     --command python3 scenes/build.py \\
       --inter "$(nix build --no-link --print-out-paths nixpkgs#inter)/share/fonts/truetype/InterVariable.ttf" \\
-      --garamond "$(nix build --no-link --print-out-paths nixpkgs#eb-garamond)/share/fonts/opentype/EBGaramond12-Regular.otf" \\
+      --martel Martel-Bold.ttf \\
       --feanor ../target/release/feanor
 
 Writes src/scenes/<scene>.json.
@@ -33,7 +40,7 @@ from fontTools.varLib.instancer import instantiateVariableFont
 OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "scenes"
 
 INTER = "Inter Bold, © 2016 The Inter Project Authors, SIL Open Font License 1.1"
-GARAMOND = "EB Garamond 12, © 2010–2013 Georg Duffner, SIL Open Font License 1.1"
+MARTEL = "Martel Bold, © 2015 Dan Reynolds, © 2010–2015 Sorkin Type Co, SIL Open Font License 1.1"
 
 SCENES = {
     "duplicate-pair": {
@@ -74,46 +81,27 @@ SCENES = {
             },
         },
     },
-    "duplicate-substitution": {
-        "font": "inter",
-        "text": "banana",
-        "glyphs": ["b", "a", "n", "a.1", "a.sc"],
-        "features": {"ss01": True},
+    "unreachable-imatra": {
+        "font": "martel",
+        # the font as it ships: its own GSUB does the Devanagari shaping
+        "shipped": True,
+        "text": "सिद्धि",
+        "features": {},
         "variants": {
-            # one glyph, two results: the compilers disagree
+            # an excerpt of the source's pres feature; the real class lists 113 glyphs
             "written": {
-                "label": "Built with fea-rs",
-                "compiler": "fea-rs",
-                "fea": "feature ss01 {\n    sub a by a.1;\n    sub a by a.sc;\n} ss01;\n",
-                "note": "fea-rs silently keeps the last rule. fontTools refuses to build the same file: "
-                "“Already defined substitution for \"a\"”.",
+                "label": "As shipped",
+                "fea": "feature pres {\n    sub iMatra-deva' [ta-deva d-deva sa-deva na-deva] by iMatra-deva;\n"
+                "    sub iMatra-deva' d-deva dha-deva by iMatra-deva.10;\n} pres;\n",
+                "note": "The first rule keeps the short i-matra before most consonants, and its class "
+                "includes half da. So before द्ध the longer i-matra drawn for it never appears.",
             },
             "meant": {
                 "label": "Fixed",
-                "fea": "feature ss01 {\n    sub a by a.1;\n} ss01;\n",
-                "note": "One substitution per glyph in a lookup, and both compilers build the same font.",
-            },
-        },
-    },
-    "languagesystem-after-feature": {
-        "font": "garamond",
-        "text": "office",
-        "glyphs": ["o", "f", "i", "c", "e", "f_f_i", "f_i", "c_t", "t"],
-        "features": {"liga": True},
-        "script": "Latn",
-        "variants": {
-            "written": {
-                "label": "As written",
-                "fea": "languagesystem DFLT dflt;\nfeature liga {\n    sub f f i by f_f_i;\n    sub f i by f_i;\n} liga;\n"
-                "languagesystem latn dflt;\nfeature dlig {\n    sub c t by c_t;\n} dlig;\n",
-                "note": "liga is registered only for the default script. Once dlig registers Latin, "
-                "shapers look only there for Latin text, and the ligature is gone.",
-            },
-            "meant": {
-                "label": "Fixed",
-                "fea": "languagesystem DFLT dflt;\nlanguagesystem latn dflt;\nfeature liga {\n    sub f f i by f_f_i;\n"
-                "    sub f i by f_i;\n} liga;\nfeature dlig {\n    sub c t by c_t;\n} dlig;\n",
-                "note": "Every languagesystem before the first feature, as the specification requires.",
+                "patch": "imatra-first",
+                "fea": "feature pres {\n    sub iMatra-deva' d-deva dha-deva by iMatra-deva.10;\n"
+                "    sub iMatra-deva' [ta-deva d-deva sa-deva na-deva] by iMatra-deva;\n} pres;\n",
+                "note": "The specific rule goes first, and the i-matra reaches over the whole conjunct.",
             },
         },
     },
@@ -140,6 +128,51 @@ def subset(source: TTFont, glyphs: list[str]) -> TTFont:
         if table in font:
             del font[table]
     return font
+
+
+def imatra_first(font: TTFont) -> None:
+    """Move the rule for i-matra before half da + dha ahead of the general rule
+    that catches it first, in the font's compiled `pres` lookup."""
+    gsub = font["GSUB"].table
+    lookups = {i for r in gsub.FeatureList.FeatureRecord if r.FeatureTag == "pres" for i in r.Feature.LookupListIndex}
+
+    def target(subtable):
+        out = set()
+        for record in subtable.SubstLookupRecord:
+            for single in gsub.LookupList.Lookup[record.LookupListIndex].SubTable:
+                out.add(getattr(single, "mapping", {}).get("uni093F"))
+        return out
+
+    for index in sorted(lookups):
+        lookup = gsub.LookupList.Lookup[index]
+        if lookup.LookupType != 6:
+            continue
+        subtables = lookup.SubTable
+        general = specific = None
+        for i, st in enumerate(subtables):
+            if st.Format != 3 or "uni093F" not in st.InputCoverage[0].glyphs:
+                continue
+            ahead = [c.glyphs for c in st.LookAheadCoverage]
+            if len(ahead) == 1 and "uni0926094D" in ahead[0] and target(st) == {"uni093F"}:
+                general = i
+            if ahead == [["uni0926094D"], ["uni0927"]] and target(st) == {"uni093F.10"}:
+                specific = i
+        if general is not None and specific is not None:
+            assert general < specific, "the specific rule already comes first"
+            subtables.insert(general, subtables.pop(specific))
+            lookup.SubTableCount = len(subtables)
+            return
+    raise SystemExit("the i-matra rules weren't found in this font's pres feature")
+
+
+PATCHES = {"imatra-first": imatra_first}
+
+
+def copy(source: TTFont) -> TTFont:
+    buffer = io.BytesIO()
+    source.save(buffer)
+    buffer.seek(0)
+    return TTFont(buffer)
 
 
 def compile_with_fontTools(font: TTFont, fea: str) -> None:
@@ -193,12 +226,12 @@ def shape(font: TTFont, text: str, features: dict, script: str | None) -> list[d
 def main() -> None:
     args = argparse.ArgumentParser()
     args.add_argument("--inter", required=True)
-    args.add_argument("--garamond", required=True)
+    args.add_argument("--martel", required=True)
     args.add_argument("--feanor", default="feanor")
     opts = args.parse_args()
 
     inter = instantiateVariableFont(TTFont(opts.inter), {"wght": 700, "opsz": 32}, inplace=False)
-    fonts = {"inter": (inter, INTER), "garamond": (TTFont(opts.garamond), GARAMOND)}
+    fonts = {"inter": (inter, INTER), "martel": (TTFont(opts.martel), MARTEL)}
     OUT.mkdir(parents=True, exist_ok=True)
 
     for name, scene in SCENES.items():
@@ -208,11 +241,16 @@ def main() -> None:
             fea = variant["fea"]
             if "languagesystem" not in fea:
                 fea = DEFAULT_SYSTEM + fea
-            font = subset(source, scene["glyphs"])
-            if variant.get("compiler") == "fea-rs":
-                compile_with_fea_rs(font, fea, opts.feanor)
+            if scene.get("shipped"):
+                font = copy(source)
+                if "patch" in variant:
+                    PATCHES[variant["patch"]](font)
             else:
-                compile_with_fontTools(font, fea)
+                font = subset(source, scene["glyphs"])
+                if variant.get("compiler") == "fea-rs":
+                    compile_with_fea_rs(font, fea, opts.feanor)
+                else:
+                    compile_with_fontTools(font, fea)
             variants[key] = {
                 "label": variant["label"],
                 "note": variant.get("note", ""),
@@ -223,7 +261,7 @@ def main() -> None:
         hmtx = source["hmtx"]
         result = {
             "text": scene["text"],
-            "widths": {g: hmtx[g][0] for g in scene["glyphs"] if g in hmtx.metrics},
+            "widths": {g: hmtx[g][0] for g in scene.get("glyphs", []) if g in hmtx.metrics},
             "unitsPerEm": source["head"].unitsPerEm,
             "ascender": hhea.ascent,
             "descender": hhea.descent,

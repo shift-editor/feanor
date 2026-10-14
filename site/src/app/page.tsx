@@ -10,8 +10,7 @@ import { type Scene, ShapingScenes } from "@/components/ShapingScene";
 import { SpeedCharts } from "@/components/SpeedCharts";
 import { credit, example, glyphList, ruleDocs } from "@/lib/content";
 import duplicatePair from "@/scenes/duplicate-pair.json";
-import duplicateSubstitution from "@/scenes/duplicate-substitution.json";
-import languagesystemAfterFeature from "@/scenes/languagesystem-after-feature.json";
+import unreachableImatra from "@/scenes/unreachable-imatra.json";
 import unreachableRule from "@/scenes/unreachable-rule.json";
 
 const GITHUB = "https://github.com/shift-editor/feanor";
@@ -22,13 +21,13 @@ const NAV = [
   { label: "Docs", href: "https://docs.rs/feanor" },
 ];
 
-/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold and EB Garamond in the scenes. */
+/** Fonts whose feature code or outlines appear on the page: the code examples, and Inter Bold and Martel Bold in the scenes. */
 const CREDITS = [
   { name: "Caveat", href: "https://github.com/googlefonts/caveat" },
   { name: "Zilla Slab", href: "https://github.com/mozilla/zilla-slab" },
   { name: "Recursive", href: "https://github.com/arrowtype/recursive" },
   { name: "Inter", href: "https://github.com/rsms/inter" },
-  { name: "EB Garamond", href: "https://github.com/georgd/EB-Garamond" },
+  { name: "Martel", href: "https://github.com/typeoff/martel" },
 ];
 
 const NEXT = [
@@ -99,11 +98,30 @@ function GithubIcon() {
 const withoutHeader = (fea: string) =>
   fea.split("languagesystem").length > 2 ? fea : fea.replace("languagesystem DFLT dflt;\n", "");
 
+// how often each mistake turns up: linting the feature code in the sources of every Google Fonts family
 const SCENES = [
-  { id: "duplicate-pair", title: "Kerning written twice", data: duplicatePair, file: "kern.fea", pair: 0 },
-  { id: "unreachable-rule", title: "An exception that comes too late", data: unreachableRule, file: "calt.fea" },
-  { id: "duplicate-substitution", title: "Two compilers, two fonts", data: duplicateSubstitution, file: "ss01.fea" },
-  { id: "languagesystem", title: "A languagesystem after a feature", data: languagesystemAfterFeature, file: "features.fea" },
+  {
+    id: "unreachable-imatra",
+    title: "An i-matra that never reaches",
+    data: unreachableImatra,
+    file: "features.fea",
+    found: "From a font as it ships. Found in 4 Google Fonts families.",
+  },
+  {
+    id: "duplicate-pair",
+    title: "Kerning written twice",
+    data: duplicatePair,
+    file: "kern.fea",
+    pair: 0,
+    found: "Found in 4 Google Fonts families.",
+  },
+  {
+    id: "unreachable-rule",
+    title: "An exception that comes too late",
+    data: unreachableRule,
+    file: "calt.fea",
+    found: "Found in 3 Google Fonts families.",
+  },
 ];
 
 export default async function Home() {

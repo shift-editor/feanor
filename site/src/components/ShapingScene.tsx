@@ -45,6 +45,8 @@ export interface Scene {
   code: Record<Which, React.ReactNode>;
   /** For kerning: the index of the pair's first glyph, to hatch the kerning between them. */
   pair?: number;
+  /** How often the mistake turns up in real feature code, e.g. "Found in 4 Google Fonts families". */
+  found?: string;
 }
 
 // Shift's negative-spacing amber, as the spacing tool draws it
@@ -245,6 +247,7 @@ function ShapingScene({ scene }: { scene: Scene }) {
             </span>
           )}
         </div>
+        {scene.found && <p className="font-copy text-xs text-muted">{scene.found}</p>}
       </div>
     </figure>
   );
