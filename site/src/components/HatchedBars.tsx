@@ -6,7 +6,8 @@ import { useState } from "react";
  * A horizontal bar chart filled with the hatching Shift draws for spacing:
  * 1px diagonal lines every 6px of width over a light tint of the same colour.
  * Each series hatches at 45° or 135°, as the two sides of a spacing gap do, so
- * series differ by direction as well as colour.
+ * series differ by direction as well as colour. A 1px outline in the same
+ * colour edges each bar.
  */
 
 export interface Series {
@@ -36,9 +37,10 @@ interface Props {
 
 /**
  * Shift's spacing hatch as CSS backgrounds: a 6px tile holding one diagonal,
- * so lines land on whole pixels and every bar hatches alike.
+ * so lines land on whole pixels and every bar hatches alike. `outlined` adds a
+ * 1px edge in the same colour.
  */
-export function hatch(rgb: string, angle: 45 | 135): React.CSSProperties {
+export function hatch(rgb: string, angle: 45 | 135, outlined = true): React.CSSProperties {
   // 45° rises to the right, like the left half of a spacing gap; 135° mirrors it
   const line = angle === 45 ? "M-1 1 1-1M0 6 6 0M5 7 7 5" : "M-1 5 1 7M0 0 6 6M5-1 7 1";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><path d="${line}" stroke="rgb(${rgb})" stroke-opacity="0.75" stroke-width="1" shape-rendering="crispEdges"/></svg>`;
@@ -46,6 +48,8 @@ export function hatch(rgb: string, angle: 45 | 135): React.CSSProperties {
     backgroundColor: `rgba(${rgb}, 0.14)`,
     backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
     backgroundSize: "6px 6px",
+    // a 1px outline in the series colour, inset so it doesn't change the bar's length
+    ...(outlined && { boxShadow: `inset 0 0 0 1px rgb(${rgb})` }),
   };
 }
 

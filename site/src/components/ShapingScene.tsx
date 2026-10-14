@@ -205,7 +205,7 @@ function ShapingScene({ scene }: { scene: Scene }) {
               style={{
                 left: toPercent(kerning.left),
                 width: `${(kerning.width / total) * 100}%`,
-                ...hatch(AMBER, 45),
+                ...hatch(AMBER, 45, false),
               }}
             />
           )}
