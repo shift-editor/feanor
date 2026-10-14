@@ -1,0 +1,61 @@
+@lowerCon0 = [ b c d f g h j k l m n p q r s t v w x y z ];
+
+@lowerCon1 = [ b.ss01 c.ss01 d.ss01 f.ss01 g.ss01 h.ss01 j.ss01 k.ss01 l.ss01 m.ss01 n.ss01 p.ss01 q.ss01 r.ss01 s.ss01 t.ss01 v.ss01 w.ss01 x.ss01 y.ss01 z.ss01 ];
+
+@lowerCon2 = [ b.ss02 c.ss02 d.ss02 f.ss02 g.ss02 h.ss02 j.ss02 k.ss02 l.ss02 m.ss02 n.ss02 p.ss02 q.ss02 r.ss02 s.ss02 t.ss02 v.ss02 w.ss02 x.ss02 y.ss02 z.ss02 ];
+
+@lowerEtc = [ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z A.ss01 B.ss01 C.ss01 D.ss01 E.ss01 F.ss01 G.ss01 H.ss01 I.ss01 J.ss01 K.ss01 L.ss01 M.ss01 N.ss01 O.ss01 P.ss01 Q.ss01 R.ss01 S.ss01 T.ss01 U.ss01 V.ss01 W.ss01 X.ss01 Y.ss01 Z.ss01 A.ss02 B.ss02 C.ss02 D.ss02 E.ss02 F.ss02 G.ss02 H.ss02 I.ss02 J.ss02 K.ss02 L.ss02 M.ss02 N.ss02 O.ss02 P.ss02 Q.ss02 R.ss02 S.ss02 T.ss02 U.ss02 V.ss02 W.ss02 X.ss02 Y.ss02 Z.ss02 f_f_i f_f_l f_i f_l f_f f_t space ];
+
+@lowerVoc0 = [ a e i o u ];
+
+@lowerVoc1 = [ a.ss01 e.ss01 i.ss01 o.ss01 u.ss01 ];
+
+@lowerVoc2 = [ a.ss02 e.ss02 i.ss02 o.ss02 u.ss02 ];
+
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+languagesystem latn CAT;
+
+feature liga {
+sub f f i by f_f_i;
+	sub f f l by f_f_l;
+	
+	sub f i by f_i;
+	sub f l by f_l;
+	sub f f by f_f;
+	sub f t by f_t;
+} liga;
+
+feature calt {
+# LOWER consonant-consonant
+	sub @lowerCon0 @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 @lowerCon0' by @lowerCon2;
+
+	# LOWER consonant-1-consonant
+	sub @lowerCon0 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon2;
+
+	# LOWER consonant-2-consonant
+	sub @lowerCon0 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon2;
+
+	# LOWER consonant-3-consonant
+	sub @lowerCon0 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon2;
+
+	# LOWER consonant-4-consonant
+	sub @lowerCon0 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon2;
+
+	# LOWER consonant-5-consonant
+	sub @lowerCon0 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon1;
+	sub @lowerCon1 [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] [@lowerVoc0 @lowerVoc1 @lowerVoc2 @lowerEtc] @lowerCon0' by @lowerCon2;
+
+	# LOWER vowel-vowel
+	sub @lowerVoc0 @lowerVoc0' by @lowerVoc1;
+	sub @lowerVoc1 @lowerVoc0' by @lowerVoc2;
+	
+	# LOWER vowel-1-vowel
+	sub @lowerVoc0 [@lowerCon0 @lowerCon1 @lowerCon2 @lowerEtc] @lowerVoc0' by @lowerVoc1;
+	sub @lowerVoc1 [@lowerCon0 @lowerCon1 @lowerCon2 @lowerEtc] @lowerVoc0' by @lowerVoc2;
+} calt;

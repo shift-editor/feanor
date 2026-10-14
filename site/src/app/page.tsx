@@ -100,9 +100,9 @@ const SCENES = [
 
 export default async function Home() {
   const examples: Example[] = [
-    { id: "inter", label: "Inter: calt.fea", file: "inter-calt.fea" },
-    { id: "recursive", label: "Recursive: common.fea", file: "recursive-common.fea" },
-    { id: "nastaliq", label: "Noto Nastaliq Urdu: classes", file: "noto-nastaliq-classes.fea" },
+    { id: "hand-edited", label: "Hand-edited over the years", file: "caveat-calt.fea" },
+    { id: "table", label: "A table, half aligned", file: "zilla-figures.fea" },
+    { id: "tidy", label: "Already tidy", file: "recursive-common.fea" },
   ].map((e) => ({ ...e, text: example(e.file), credit: credit(e.file) }));
   const glyphs = glyphList("playground-glyphs.txt");
   const rules = ruleDocs();

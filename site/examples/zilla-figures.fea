@@ -1,0 +1,106 @@
+@figures = [ zero one two three four five six seven eight nine ];
+@denominators = [ zeroinferior oneinferior twoinferior threeinferior fourinferior fiveinferior sixinferior seveninferior eightinferior nineinferior ];
+@numerators = [ zero.numr one.numr two.numr three.numr four.numr five.numr six.numr seven.numr eight.numr nine.numr  ];
+
+
+@ZERO = [ zero zero.zero zero.tnum_lnum zero.tnum_onum zero.pnum_lnum zeroinferior zerosuperior zero.numr zero.tnum_lnum_zero zero.tnum_onum_zero zero.pnum_lnum_zero zero.smcp zero.smcp_zero ];
+@ONE = [ one  one.tnum_lnum one.tnum_onum one.pnum_lnum oneinferior onesuperior one.numr one.smcp];
+@TWO = [ two  two.tnum_lnum two.tnum_onum two.pnum_lnum twoinferior twosuperior two.numr two.smcp];
+@THREE = [ three  three.tnum_lnum three.tnum_onum three.pnum_lnum threeinferior threesuperior three.numr three.smcp ];
+@FOUR = [ four  four.tnum_lnum four.tnum_onum four.pnum_lnum fourinferior foursuperior four.numr four.smcp];
+@FIVE = [ five  five.tnum_lnum five.tnum_onum five.pnum_lnum fiveinferior fivesuperior five.numr five.smcp];
+@SIX = [ six  six.tnum_lnum six.tnum_onum six.pnum_lnum sixinferior sixsuperior six.numr six.smcp];
+@SEVEN = [ seven  seven.tnum_lnum seven.tnum_onum seven.pnum_lnum seveninferior sevensuperior seven.numr seven.smcp];
+@EIGHT = [ eight  eight.tnum_lnum eight.tnum_onum eight.pnum_lnum eightinferior eightsuperior eight.numr  eight.smcp];
+@NINE = [ nine  nine.tnum_lnum nine.tnum_onum nine.pnum_lnum nineinferior ninesuperior nine.numr nine.smcp];
+
+@FIGURES = [ @ZERO @ONE @TWO @THREE @FOUR @FIVE @SIX @SEVEN @EIGHT @NINE ];
+
+@FIG_SUPERIOR = [ zerosuperior onesuperior twosuperior threesuperior foursuperior fivesuperior sixsuperior sevensuperior eightsuperior ninesuperior ];
+@FIG_INFERIOR = [ zeroinferior oneinferior twoinferior threeinferior fourinferior fiveinferior sixinferior seveninferior eightinferior nineinferior ];
+@FIG_NUMR = [ zero.numr one.numr two.numr three.numr four.numr five.numr six.numr seven.numr eight.numr nine.numr ];
+
+@SLASH = [ fraction slash ];
+@PREBUILT = [ twothirds threequarters onethird onequarter onehalf uni215B threesup_fraction_eightinf fivesup_fraction_eightinf sevensup_fraction_eightinf ];
+
+
+#---------------------------------------
+# Fractions
+#---------------------------------------
+
+# Tal Leming FRAC code
+# 1 OCR 2009
+# http://talleming.com/2009/10/01/fraction-fever-2/
+
+feature frac {
+   lookup FractionBar {
+        ignore sub slash @figures @figures @figures @figures @figures @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures @figures slash;
+        ignore sub slash @figures @figures @figures slash';
+        ignore sub slash' @figures @figures @figures slash;
+        ignore sub slash @figures @figures slash';
+        ignore sub slash' @figures @figures slash;
+        ignore sub slash @figures slash';
+        ignore sub slash' @figures slash;
+        sub @figures slash' @figures by fraction;
+   } FractionBar;
+
+   lookup Numerator1 {
+        sub @figures' fraction by @numerators;
+   } Numerator1;
+
+   lookup Numerator2 {
+        sub @figures' @numerators fraction by @numerators;
+   } Numerator2;
+
+   lookup Numerator3 {
+        sub @figures' @numerators @numerators fraction by @numerators;
+   } Numerator3;
+
+   lookup Numerator4 {
+        sub @figures' @numerators @numerators @numerators fraction by @numerators;
+   } Numerator4;
+
+   lookup Numerator5 {
+        sub @figures' @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator5;
+
+   lookup Numerator6 {
+        sub @figures' @numerators @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator6;
+
+   lookup Numerator7 {
+        sub @figures' @numerators @numerators @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator7;
+
+   lookup Numerator8 {
+        sub @figures' @numerators @numerators @numerators @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator8;
+
+   lookup Numerator9 {
+        sub @figures' @numerators @numerators @numerators @numerators @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator9;
+
+   lookup Numerator10 {
+        sub @figures' @numerators @numerators @numerators @numerators @numerators @numerators @numerators @numerators @numerators fraction by @numerators;
+   } Numerator10;
+
+   lookup Denominator {
+        sub [fraction @denominators] @figures' by @denominators;
+   } Denominator;
+
+   sub @figures space' @numerators by uni200A;
+
+} frac;
