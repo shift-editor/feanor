@@ -5,3 +5,4 @@ next-env.d.ts
 src/wasm/
 public/feanor_bg.wasm
 smoke.png
+*.tsbuildinfo
