@@ -12,7 +12,7 @@ out=pkg
 cargo build --release --target wasm32-unknown-unknown -p feanor-wasm
 rm -rf "$out"
 wasm-bindgen --target web --out-dir "$out" --out-name feanor \
-  "$root/target/wasm32-unknown-unknown/release/feanor_wasm.wasm"
+  "${CARGO_TARGET_DIR:-$root/target}/wasm32-unknown-unknown/release/feanor_wasm.wasm"
 wasm-opt -Os --enable-bulk-memory --enable-nontrapping-float-to-int \
   "$out/feanor_bg.wasm" -o "$out/feanor_bg.wasm"
 
